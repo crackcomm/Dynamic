@@ -63,6 +63,7 @@
 #include "wallet/wallet.h"
 #include "wallet/walletdb.h"
 #endif
+#include "warnings.h"
 
 #include <memory>
 #include <stdint.h>
@@ -91,7 +92,6 @@
 extern void ThreadSendAlert(CConnman& connman);
 
 bool fFeeEstimatesInitialized = false;
-bool fRestartRequested = false;  // true: restart false: shutdown
 
 static const bool DEFAULT_PROXYRANDOMIZE = true;
 static const bool DEFAULT_REST_ENABLE = false;
@@ -157,14 +157,23 @@ static const char* FEE_ESTIMATES_FILENAME="fee_estimates.dat";
 //
 
 std::atomic<bool> fRequestShutdown(false);
+std::atomic<bool> fRequestRestart(false);
+std::atomic<bool> fDumpMempoolLater(false);
+
 
 void StartShutdown()
 {
     fRequestShutdown = true;
 }
+
+void StartRestart()
+{
+    fRequestShutdown = fRequestRestart = true;
+}
+
 bool ShutdownRequested()
 {
-    return fRequestShutdown || fRestartRequested;
+    return fRequestShutdown;
 }
 
 class CCoinsViewErrorCatcher : public CCoinsViewBacked
@@ -205,9 +214,6 @@ void Interrupt(boost::thread_group& threadGroup)
 /** Preparing steps before shutting down or restarting the wallet */
 void PrepareShutdown()
 {
-    fRequestShutdown = true; // Needed when we shutdown the wallet
-    fRestartRequested = true; // Needed when we restart the wallet
-
     LogPrintf("%s: In progress...\n", __func__);
     static CCriticalSection cs_Shutdown;
     TRY_LOCK(cs_Shutdown, lockShutdown);
@@ -245,7 +251,8 @@ void PrepareShutdown()
     flatdb4.Dump(netfulfilledman);
 
     UnregisterNodeSignals(GetNodeSignals());
-    DumpMempool();
+    if (fDumpMempoolLater)
+        DumpMempool();
 
     if (fFeeEstimatesInitialized)
     {
@@ -313,7 +320,7 @@ void PrepareShutdown()
 void Shutdown()
 {
     // Shutdown part 1: prepare shutdown
-    if(!fRestartRequested){
+    if(!fRequestRestart) {
         PrepareShutdown();
     }
    // Shutdown part 2: Stop TOR thread and delete wallet instance
@@ -747,6 +754,7 @@ void ThreadImport(std::vector<boost::filesystem::path> vImportFiles)
     }
     } // End scope of CImportingNow
     LoadMempool();
+    fDumpMempoolLater = !fRequestShutdown;
 }
 
 /** Sanity checks
@@ -787,22 +795,27 @@ void InitParameterInteraction()
 {
     // when specifying an explicit binding address, you want to listen on it
     // even when -connect or -proxy is specified
-    if (mapArgs.count("-bind")) {
+    if (IsArgSet("-bind")) {
         if (SoftSetBoolArg("-listen", true))
             LogPrintf("%s: parameter interaction: -bind set -> setting -listen=1\n", __func__);
     }
-    if (mapArgs.count("-whitebind")) {
+    if (IsArgSet("-whitebind")) {
         if (SoftSetBoolArg("-listen", true))
             LogPrintf("%s: parameter interaction: -whitebind set -> setting -listen=1\n", __func__);
     }
 
     if (GetBoolArg("-dynode", false)) {
-        // Dynodes must accept connections from outside
-        if (SoftSetBoolArg("-listen", true))
-            LogPrintf("%s: parameter interaction: -dynode=1 -> setting -listen=1\n", __func__);
+        // Dynodes MUST accept connections from outside
+        ForceSetArg("-listen", "1");
+        LogPrintf("%s: parameter interaction: -dynode=1 -> setting -listen=1\n", __func__);
+        if (GetArg("-maxconnections", DEFAULT_MAX_PEER_CONNECTIONS) < DEFAULT_MAX_PEER_CONNECTIONS) {
+            // Dynodes MUST be able to handle at least DEFAULT_MAX_PEER_CONNECTIONS connections
+            ForceSetArg("-maxconnections", itostr(DEFAULT_MAX_PEER_CONNECTIONS));
+            LogPrintf("%s: parameter interaction: -dynode=1 -> setting -maxconnections=%d\n", __func__, DEFAULT_MAX_PEER_CONNECTIONS);
+        }
     }
 
-    if (mapArgs.count("-connect") && mapMultiArgs["-connect"].size() > 0) {
+    if (mapMultiArgs.count("-connect") && mapMultiArgs.at("-connect").size() > 0) {
         // when only connecting to trusted nodes, do not seed via DNS, or listen by default
         if (SoftSetBoolArg("-dnsseed", false))
             LogPrintf("%s: parameter interaction: -connect set -> setting -dnsseed=0\n", __func__);
@@ -810,7 +823,7 @@ void InitParameterInteraction()
             LogPrintf("%s: parameter interaction: -connect set -> setting -listen=0\n", __func__);
     }
 
-    if (mapArgs.count("-proxy")) {
+    if (IsArgSet("-proxy")) {
         // to protect privacy, do not listen by default if a default proxy server is specified
         if (SoftSetBoolArg("-listen", false))
             LogPrintf("%s: parameter interaction: -proxy set -> setting -listen=0\n", __func__);
@@ -833,7 +846,7 @@ void InitParameterInteraction()
             LogPrintf("%s: parameter interaction: -listen=0 -> setting -listenonion=0\n", __func__);
     }
 
-    if (mapArgs.count("-externalip")) {
+    if (IsArgSet("-externalip")) {
         // if an explicit public IP is specified, do not try to find others
         if (SoftSetBoolArg("-discover", false))
             LogPrintf("%s: parameter interaction: -externalip set -> setting -discover=0\n", __func__);
@@ -846,35 +859,38 @@ void InitParameterInteraction()
     }
 
     if(!GetBoolArg("-enableinstantsend", fEnableInstantSend)){
-        if (SoftSetArg("-instantsenddepth", 0))
+        if (SoftSetArg("-instantsenddepth", "0"))
             LogPrintf("%s: parameter interaction: -enableinstantsend=false -> setting -nInstantSendDepth=0\n", __func__);
     }
 
 #ifdef ENABLE_WALLET
     int nLiqProvTmp = GetArg("-liquidityprovider", DEFAULT_PRIVATESEND_LIQUIDITY);
     if (nLiqProvTmp > 0) {
-        mapArgs["-enableprivatesend"] = "1";
+        ForceSetArg("-enableprivatesend", "1");
         LogPrintf("%s: parameter interaction: -liquidityprovider=%d -> setting -enableprivatesend=1\n", __func__, nLiqProvTmp);
-        mapArgs["-privatesendamount"] = "999999";
-        LogPrintf("%s: parameter interaction: -liquidityprovider=%d -> setting -privatesendamount=999999\n", __func__, nLiqProvTmp);
-        mapArgs["-privatesendmultisession"] = "0";
+        ForceSetArg("-privatesendrounds", itostr(std::numeric_limits<int>::max()));
+        LogPrintf("%s: parameter interaction: -liquidityprovider=%d -> setting -privatesendrounds=%d\n", __func__, nLiqProvTmp, itostr(std::numeric_limits<int>::max()));
+        ForceSetArg("-privatesendamount", itostr(MAX_PRIVATESEND_AMOUNT));
+        LogPrintf("%s: parameter interaction: -liquidityprovider=%d -> setting -privatesendamount=%d\n", __func__, nLiqProvTmp, MAX_PRIVATESEND_AMOUNT);
+        ForceSetArg("-privatesendmultisession", "0");
         LogPrintf("%s: parameter interaction: -liquidityprovider=%d -> setting -privatesendmultisession=0\n", __func__, nLiqProvTmp);
     }
-    if (mapArgs.count("-hdseed") && IsHex(GetArg("-hdseed", "not hex")) && (mapArgs.count("-mnemonic") || mapArgs.count("-mnemonicpassphrase"))) {
-        mapArgs.erase("-mnemonic");
-        mapArgs.erase("-mnemonicpassphrase");
+
+    if (IsArgSet("-hdseed") && IsHex(GetArg("-hdseed", "not hex")) && (IsArgSet("-mnemonic") || IsArgSet("-mnemonicpassphrase"))) {
+        ForceRemoveArg("-mnemonic");
+        ForceRemoveArg("-mnemonicpassphrase");
         LogPrintf("%s: parameter interaction: can't use -hdseed and -mnemonic/-mnemonicpassphrase together, will prefer -seed\n", __func__);
     }
 #endif // ENABLE_WALLET
     // Make sure additional indexes are recalculated correctly in VerifyDB
     // (we must reconnect blocks whenever we disconnect them for these indexes to work)
     bool fAdditionalIndexes =
-         GetBoolArg("-addressindex", DEFAULT_ADDRESSINDEX) ||
+        GetBoolArg("-addressindex", DEFAULT_ADDRESSINDEX) ||
         GetBoolArg("-spentindex", DEFAULT_SPENTINDEX) ||
         GetBoolArg("-timestampindex", DEFAULT_TIMESTAMPINDEX);
 
     if (fAdditionalIndexes && GetArg("-checklevel", DEFAULT_CHECKLEVEL) < 4) {
-        mapArgs["-checklevel"] = "4";
+        ForceSetArg("-checklevel", "4");
         LogPrintf("%s: parameter interaction: additional indexes -> setting -checklevel=4\n", __func__);
     }
 }
@@ -906,6 +922,19 @@ int nFD;
 ServiceFlags nLocalServices = NODE_NETWORK;
 
 }
+
+[[noreturn]] static void new_handler_terminate()
+{
+    // Rather than throwing std::bad-alloc if allocation fails, terminate
+    // immediately to (try to) avoid chain corruption.
+    // Since LogPrintf may itself allocate memory, set the handler directly
+    // to terminate first.
+    std::set_new_handler(std::terminate);
+    LogPrintf("Error: Out of memory. Terminating.\n");
+
+    // The log was successful, terminate now.
+    std::terminate();
+};
 
 bool AppInitBasicSetup()
 {
@@ -959,6 +988,9 @@ bool AppInitBasicSetup()
     // Ignore SIGPIPE, otherwise it will bring the daemon down if the client closes unexpectedly
     signal(SIGPIPE, SIG_IGN);
 #endif
+
+    std::set_new_handler(new_handler_terminate);
+
     return true;
 }
 bool AppInitParameterInteraction()
@@ -993,17 +1025,19 @@ bool AppInitParameterInteraction()
 
     // ********************************************************* Step 3: parameter-to-internal-flags
 
-    fDebug = !mapMultiArgs["-debug"].empty();
+    fDebug = mapMultiArgs.count("-debug");
     // Special-case: if -debug=0/-nodebug is set, turn off debugging messages
-    const std::vector<std::string>& categories = mapMultiArgs["-debug"];
-    if (GetBoolArg("-nodebug", false) || find(categories.begin(), categories.end(), std::string("0")) != categories.end())
-        fDebug = false;
+    if (fDebug) {
+        const std::vector<std::string>& categories = mapMultiArgs.at("-debug");
+        if (GetBoolArg("-nodebug", false) || find(categories.begin(), categories.end(), std::string("0")) != categories.end())
+            fDebug = false;
+    }
 
     // Check for -debugnet
     if (GetBoolArg("-debugnet", false))
         InitWarning(_("Unsupported argument -debugnet ignored, use -debug=net."));
     // Check for -socks - as this is a privacy risk to continue, exit here
-    if (mapArgs.count("-socks"))
+    if (IsArgSet("-socks"))
         return InitError(_("Unsupported argument -socks found. Setting SOCKS version isn't possible anymore, only SOCKS5 proxies are supported."));
     // Check for -tor - as this is a privacy risk to continue, exit here
     if (GetBoolArg("-tor", false))
@@ -1039,18 +1073,23 @@ bool AppInitParameterInteraction()
         nScriptCheckThreads = MAX_SCRIPTCHECK_THREADS;
 
     // block pruning; get the amount of disk space (in MiB) to allot for block & undo files
-    int64_t nSignedPruneTarget = GetArg("-prune", 0) * 1024 * 1024;
-    if (nSignedPruneTarget < 0) {
+    int64_t nPruneArg = GetArg("-prune", 0);
+    if (nPruneArg < 0) {
         return InitError(_("Prune cannot be configured with a negative value."));
     }
-    nPruneTarget = (uint64_t) nSignedPruneTarget;
-    if (nPruneTarget) {
+    nPruneTarget = (uint64_t) nPruneArg * 1024 * 1024;
+    if (nPruneArg == 1) {  // manual pruning: -prune=1
+        LogPrintf("Block pruning enabled.  Use RPC call pruneblockchain(height) to manually prune block and undo files.\n");
+        nPruneTarget = std::numeric_limits<uint64_t>::max();
+        fPruneMode = true;
+    } else if (nPruneTarget) {
         if (nPruneTarget < MIN_DISK_SPACE_FOR_BLOCK_FILES) {
             return InitError(strprintf(_("Prune configured below the minimum of %d MiB.  Please use a higher number."), MIN_DISK_SPACE_FOR_BLOCK_FILES / 1024 / 1024));
         }
         LogPrintf("Prune configured to target %uMiB on disk for block and undo files.\n", nPruneTarget / 1024 / 1024);
         fPruneMode = true;
     }
+
 
     RegisterAllCoreRPCCommands(tableRPC);
 #ifdef ENABLE_WALLET
@@ -1067,11 +1106,11 @@ bool AppInitParameterInteraction()
     // a transaction spammer can cheaply fill blocks using
     // 1-satoshi-fee transactions. It should be set above the real
     // cost to you of processing a transaction.
-    if (mapArgs.count("-minrelaytxfee"))
+    if (IsArgSet("-minrelaytxfee"))
     {
         CAmount n = 0;
-        if (!ParseMoney(mapArgs["-minrelaytxfee"], n) || 0 == n)
-            return InitError(AmountErrMsg("minrelaytxfee", mapArgs["-minrelaytxfee"]));
+        if (!ParseMoney(GetArg("-minrelaytxfee", ""), n) || 0 == n)
+            return InitError(AmountErrMsg("minrelaytxfee", GetArg("-minrelaytxfee", "")));
         // High fee check is done afterward in CWallet::ParameterInteraction()
         ::minRelayTxFee = CFeeRate(n);
     }
@@ -1099,7 +1138,7 @@ bool AppInitParameterInteraction()
         nLocalServices = ServiceFlags(nLocalServices | NODE_BLOOM);
 
     fEnableReplacement = GetBoolArg("-mempoolreplacement", DEFAULT_ENABLE_REPLACEMENT);
-    if ((!fEnableReplacement) && mapArgs.count("-mempoolreplacement")) {
+    if ((!fEnableReplacement) && IsArgSet("-mempoolreplacement")) {
         // Minimal effort at forwards compatibility
         std::string strReplacementModeList = GetArg("-mempoolreplacement", "");  // default is impossible
         std::vector<std::string> vstrReplacementModes;
@@ -1185,7 +1224,7 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
         for (int i=0; i<nScriptCheckThreads-1; i++)
             threadGroup.create_thread(&ThreadScriptCheck);
     }
-    if (mapArgs.count("-sporkkey")) // spork priv key
+    if (IsArgSet("-sporkkey")) // spork priv key
     {
         if (!sporkManager.SetPrivKey(GetArg("-sporkkey", "")))
             return InitError(_("Unable to sign spork message, wrong key?"));
@@ -1206,8 +1245,6 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
         if (!AppInitServers(threadGroup))
             return InitError(_("Unable to start HTTP server. See debug log for details."));
     }
-
-    int64_t nStart;
 
     // ********************************************************* Step 5: Backup wallet and verify wallet database integrity
 #ifdef ENABLE_WALLET
@@ -1232,21 +1269,24 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
 
     // sanitize comments per BIP-0014, format user agent and check total size
     std::vector<std::string> uacomments;
-    BOOST_FOREACH(std::string cmt, mapMultiArgs["-uacomment"])
-    {
-        if (cmt != SanitizeString(cmt, SAFE_CHARS_UA_COMMENT))
-            return InitError(strprintf(_("User Agent comment (%s) contains unsafe characters."), cmt));
-        uacomments.push_back(SanitizeString(cmt, SAFE_CHARS_UA_COMMENT));
+    if (mapMultiArgs.count("-uacomment")) {
+        BOOST_FOREACH(std::string cmt, mapMultiArgs.at("-uacomment"))
+        {
+            if (cmt != SanitizeString(cmt, SAFE_CHARS_UA_COMMENT))
+                return InitError(strprintf(_("User Agent comment (%s) contains unsafe characters."), cmt));
+            uacomments.push_back(cmt);
+        }
     }
+
     strSubVersion = FormatSubVersion(CLIENT_NAME, CLIENT_VERSION, uacomments);
     if (strSubVersion.size() > MAX_SUBVERSION_LENGTH) {
         return InitError(strprintf(_("Total length of network version string (%i) exceeds maximum length (%i). Reduce the number or size of uacomments."),
             strSubVersion.size(), MAX_SUBVERSION_LENGTH));
     }
 
-    if (mapArgs.count("-onlynet")) {
+    if (mapMultiArgs.count("-onlynet")) {
         std::set<enum Network> nets;
-        BOOST_FOREACH(const std::string& snet, mapMultiArgs["-onlynet"]) {
+        BOOST_FOREACH(const std::string& snet, mapMultiArgs.at("-onlynet")) {
             enum Network net = ParseNetwork(snet);
             if (net == NET_UNROUTABLE)
                 return InitError(strprintf(_("Unknown network specified in -onlynet: '%s'"), snet));
@@ -1259,8 +1299,8 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
         }
     }
 
-    if (mapArgs.count("-whitelist")) {
-        BOOST_FOREACH(const std::string& net, mapMultiArgs["-whitelist"]) {
+    if (mapMultiArgs.count("-whitelist")) {
+        BOOST_FOREACH(const std::string& net, mapMultiArgs.at("-whitelist")) {
             CSubNet subnet;
             LookupSubNet(net.c_str(), subnet);
             if (!subnet.IsValid())
@@ -1312,14 +1352,16 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
 
     if (fListen) {
         bool fBound = false;
-        if (mapArgs.count("-bind") || mapArgs.count("-whitebind")) {
-            BOOST_FOREACH(const std::string& strBind, mapMultiArgs["-bind"]) {
+        if (mapMultiArgs.count("-bind")) {
+            BOOST_FOREACH(const std::string& strBind, mapMultiArgs.at("-bind")) {
                 CService addrBind;
                 if (!Lookup(strBind.c_str(), addrBind, GetListenPort(), false))
                     return InitError(ResolveErrMsg("bind", strBind));
                 fBound |= Bind(connman, addrBind, (BF_EXPLICIT | BF_REPORT_ERROR));
             }
-            BOOST_FOREACH(const std::string& strBind, mapMultiArgs["-whitebind"]) {
+        }
+        if (mapMultiArgs.count("-whitebind")) {
+            BOOST_FOREACH(const std::string& strBind, mapMultiArgs.at("-whitebind")) {
                 CService addrBind;
                 if (!Lookup(strBind.c_str(), addrBind, 0, false))
                     return InitError(ResolveErrMsg("whitebind", strBind));
@@ -1328,7 +1370,7 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
                 fBound |= Bind(connman, addrBind, (BF_EXPLICIT | BF_REPORT_ERROR | BF_WHITELIST));
             }
         }
-        else {
+        if (!mapMultiArgs.count("-bind") && !mapMultiArgs.count("-whitebind")) {
             struct in_addr inaddr_any;
             inaddr_any.s_addr = INADDR_ANY;
             fBound |= Bind(connman, CService(in6addr_any, GetListenPort()), BF_NONE);
@@ -1338,8 +1380,8 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
             return InitError(_("Failed to listen on any port. Use -listen=0 if you want this."));
     }
 
-    if (mapArgs.count("-externalip")) {
-        BOOST_FOREACH(const std::string& strAddr, mapMultiArgs["-externalip"]) {
+    if (mapMultiArgs.count("-externalip")) {
+        BOOST_FOREACH(const std::string& strAddr, mapMultiArgs.at("-externalip")) {
             CService addrLocal;
             if (Lookup(strAddr.c_str(), addrLocal, GetListenPort(), fNameLookup) && addrLocal.IsValid())
                 AddLocal(addrLocal, LOCAL_MANUAL);
@@ -1348,11 +1390,13 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
         }
     }
 
-    BOOST_FOREACH(const std::string& strDest, mapMultiArgs["-seednode"])
-        connman.AddOneShot(strDest);
+    if (mapMultiArgs.count("-seednode")) {
+        BOOST_FOREACH(const std::string& strDest, mapMultiArgs.at("-seednode"))
+            connman.AddOneShot(strDest);
+    }
 
 #if ENABLE_ZMQ
-    pzmqNotificationInterface = CZMQNotificationInterface::CreateWithArguments(mapArgs);
+    pzmqNotificationInterface = CZMQNotificationInterface::Create();
 
     if (pzmqNotificationInterface) {
         RegisterValidationInterface(pzmqNotificationInterface);
@@ -1365,7 +1409,7 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
     uint64_t nMaxOutboundLimit = 0; //unlimited unless -maxuploadtarget is set
     uint64_t nMaxOutboundTimeframe = MAX_UPLOAD_TIMEFRAME;
 
-    if (mapArgs.count("-maxuploadtarget")) {
+    if (IsArgSet("-maxuploadtarget")) {
         nMaxOutboundLimit = GetArg("-maxuploadtarget", DEFAULT_MAX_UPLOAD_TARGET)*1024*1024;
     }
 
@@ -1419,6 +1463,7 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
     LogPrintf("* Using %.1fMiB for in-memory UTXO set (plus up to %.1fMiB of unused mempool space)\n", nCoinCacheUsage * (1.0 / 1024 / 1024), nMempoolSizeMax * (1.0 / 1024 / 1024));
 
     bool fLoaded = false;
+    int64_t nStart = GetTimeMillis();
     while (!fLoaded && !fRequestShutdown) {
         bool fReset = fReindex;
         std::string strLoadError;
@@ -1584,13 +1629,13 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
         fHaveGenesis = true;
     }
 
-    if (mapArgs.count("-blocknotify"))
+    if (IsArgSet("-blocknotify"))
         uiInterface.NotifyBlockTip.connect(BlockNotifyCallback);
 
     std::vector<boost::filesystem::path> vImportFiles;
-    if (mapArgs.count("-loadblock"))
+    if (mapMultiArgs.count("-loadblock"))
     {
-        BOOST_FOREACH(const std::string& strFile, mapMultiArgs["-loadblock"])
+        BOOST_FOREACH(const std::string& strFile, mapMultiArgs.at("-loadblock"))
             vImportFiles.push_back(strFile);
     }
     threadGroup.create_thread(boost::bind(&ThreadImport, vImportFiles));
@@ -1715,7 +1760,7 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
     governance.InitOnLoad();
 
     strDBName = "netfulfilled.dat";
-    uiInterface.InitMessage(_("Loading fullfiled requests cache..."));
+    uiInterface.InitMessage(_("Loading fulfilled requests cache..."));
     CFlatDB<CNetFulfilledRequestManager> flatdb4(strDBName, "magicFulfilledCache");
     if(!flatdb4.Load(netfulfilledman)) {
         return InitError(_("Failed to load fulfilled requests cache from") + "\n" + (pathDB / strDBName).string());

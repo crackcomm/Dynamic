@@ -1510,13 +1510,13 @@ void CWallet::GenerateNewHDChain()
 
     std::string strSeed = GetArg("-hdseed", "not hex");
 
-    if(mapArgs.count("-hdseed") && IsHex(strSeed)) {
+    if(IsArgSet("-hdseed") && IsHex(strSeed)) {
         std::vector<unsigned char> vchSeed = ParseHex(strSeed);
         if (!newHdChain.SetSeed(SecureVector(vchSeed.begin(), vchSeed.end()), true))
             throw std::runtime_error(std::string(__func__) + ": SetSeed failed");
     }
     else {
-        if (mapArgs.count("-hdseed") && !IsHex(strSeed))
+        if (IsArgSet("-hdseed") && !IsHex(strSeed))
             LogPrintf("CWallet::GenerateNewHDChain -- Incorrect seed, generating random one instead\n");
 
         // NOTE: empty mnemonic means "generate a new one for me"
@@ -1536,9 +1536,9 @@ void CWallet::GenerateNewHDChain()
         throw std::runtime_error(std::string(__func__) + ": SetHDChain failed");
 
     // clean up
-    mapArgs.erase("-hdseed");
-    mapArgs.erase("-mnemonic");
-    mapArgs.erase("-mnemonicpassphrase");
+    ForceRemoveArg("-hdseed");
+    ForceRemoveArg("-mnemonic");
+    ForceRemoveArg("-mnemonicpassphrase");
 }
 
 bool CWallet::SetHDChain(const CHDChain& chain, bool memonly)
@@ -2903,13 +2903,6 @@ bool CWallet::SelectCoinsByDenominations(int nDenom, CAmount nValueMin, CAmount 
 
             BOOST_FOREACH(int nBit, vecBits) {
                 if(out.tx->vout[out.i].nValue == vecPrivateSendDenominations[nBit]) {
-                    if(nValueRet >= nValueMin) {
-                        //randomly reduce the max amount we'll submit (for anonymity)
-                        nValueMax -= insecure_rand.rand32(nValueMax/5);
-                        //on average use 50% of the inputs or less
-                        int r = insecure_rand.rand32(vCoins.size());
-                        if((int)vecTxPSInRet.size() > r) return true;
-                    }
                     nValueRet += out.tx->vout[out.i].nValue;
                     vecTxPSInRet.push_back(CTxPSIn(txin, out.tx->vout[out.i].scriptPubKey));
                     vCoinsRet.push_back(out);
@@ -4699,7 +4692,7 @@ bool CWallet::InitLoadWallet()
         }
 
     }
-    else if (mapArgs.count("-usehd")) {
+    else if (IsArgSet("-usehd")) {
         bool useHD = GetBoolArg("-usehd", DEFAULT_USE_HD_WALLET);
         if (walletInstance->IsHDEnabled() && !useHD) {
             return InitError(strprintf(_("Error loading %s: You can't disable HD on a already existing HD wallet"),
@@ -4833,56 +4826,68 @@ bool CWallet::ParameterInteraction()
         InitWarning(AmountHighWarn("-minrelaytxfee") + " " +
                     _("The wallet will avoid paying less than the minimum relay fee."));
 
-    if (mapArgs.count("-mintxfee"))
+    if (IsArgSet("-mintxfee"))
     {
         CAmount n = 0;
-        if (!ParseMoney(mapArgs["-mintxfee"], n) || 0 == n)
-            return InitError(AmountErrMsg("mintxfee", mapArgs["-mintxfee"]));
+        if (!ParseMoney(GetArg("-mintxfee", ""), n) || 0 == n)
+            return InitError(AmountErrMsg("mintxfee", GetArg("-mintxfee", "")));
         if (n > HIGH_TX_FEE_PER_KB)
             InitWarning(AmountHighWarn("-mintxfee") + " " +
                         _("This is the minimum transaction fee you pay on every transaction."));
         CWallet::minTxFee = CFeeRate(n); 
     }
-    if (mapArgs.count("-fallbackfee"))
+    if (IsArgSet("-fallbackfee"))
     {
         CAmount nFeePerK = 0;
-        if (!ParseMoney(mapArgs["-fallbackfee"], nFeePerK))
-            return InitError(strprintf(_("Invalid amount for -fallbackfee=<amount>: '%s'"), mapArgs["-fallbackfee"]));
+        if (!ParseMoney(GetArg("-fallbackfee", ""), nFeePerK))
+            return InitError(strprintf(_("Invalid amount for -fallbackfee=<amount>: '%s'"), GetArg("-fallbackfee", "")));
         if (nFeePerK > HIGH_TX_FEE_PER_KB)
             InitWarning(AmountHighWarn("-fallbackfee is set very high! This is the transaction fee you may pay when fee estimates are not available."));
         CWallet::fallbackFee = CFeeRate(nFeePerK);
     }
-    if (mapArgs.count("-paytxfee"))
+    if (IsArgSet("-paytxfee"))
     {
         CAmount nFeePerK = 0;
-        if (!ParseMoney(mapArgs["-paytxfee"], nFeePerK))
-            return InitError(AmountErrMsg("paytxfee", mapArgs["-paytxfee"]));
+        if (!ParseMoney(GetArg("-paytxfee", ""), nFeePerK))
+            return InitError(AmountErrMsg("paytxfee", GetArg("-paytxfee", "")));
         if (nFeePerK > HIGH_TX_FEE_PER_KB)
             InitWarning(AmountHighWarn("-paytxfee is set very high! This is the transaction fee you will pay if you send a transaction."));
         payTxFee = CFeeRate(nFeePerK, 1000);
         if (payTxFee < ::minRelayTxFee)
         {
             return InitError(strprintf(_("Invalid amount for -paytxfee=<amount>: '%s' (must be at least %s)"),
-                                       mapArgs["-paytxfee"], ::minRelayTxFee.ToString()));
+                                       GetArg("-paytxfee", ""), ::minRelayTxFee.ToString()));
         }
     }
-    if (mapArgs.count("-maxtxfee"))
+    if (IsArgSet("-maxtxfee"))
     {
         CAmount nMaxFee = 0;
-        if (!ParseMoney(mapArgs["-maxtxfee"], nMaxFee))
-            return InitError(AmountErrMsg("maxtxfee", mapArgs["-maxtxfee"]));
+        if (!ParseMoney(GetArg("-maxtxfee", ""), nMaxFee))
+            return InitError(AmountErrMsg("maxtxfee", GetArg("-maxtxfee", "")));
         if (nMaxFee > HIGH_MAX_TX_FEE)
             InitWarning(_("-maxtxfee is set very high! Fees this large could be paid on a single transaction."));
         maxTxFee = nMaxFee;
         if (CFeeRate(maxTxFee, 1000) < ::minRelayTxFee)
         {
             return InitError(strprintf(_("Invalid amount for -maxtxfee=<amount>: '%s' (must be at least the minrelay fee of %s to prevent stuck transactions)"),
-                                       mapArgs["-maxtxfee"], ::minRelayTxFee.ToString()));
+                                       GetArg("-maxtxfee", ""), ::minRelayTxFee.ToString()));
         }
     }
     nTxConfirmTarget = GetArg("-txconfirmtarget", DEFAULT_TX_CONFIRM_TARGET);
     bSpendZeroConfChange = GetBoolArg("-spendzeroconfchange", DEFAULT_SPEND_ZEROCONF_CHANGE);
     fSendFreeTransactions = GetBoolArg("-sendfreetransactions", DEFAULT_SEND_FREE_TRANSACTIONS);
+
+    if (fSendFreeTransactions && GetArg("-limitfreerelay", DEFAULT_LIMITFREERELAY) <= 0)
+        return InitError("Creation of free transactions with their relay disabled is not supported.");
+
+    if (IsArgSet("-walletbackupsdir")) {
+        if (!boost::filesystem::is_directory(GetArg("-walletbackupsdir", ""))) {
+            LogPrintf("%s: Warning: incorrect parameter -walletbackupsdir, path must exist! Using default path.\n", __func__);
+            InitWarning("Warning: incorrect parameter -walletbackupsdir, path must exist! Using default path.\n");
+
+            ForceRemoveArg("-walletbackupsdir");
+        }
+    }
 
     return true;
 }
@@ -4973,6 +4978,12 @@ bool AutoBackupWallet (CWallet* wallet, std::string strWalletFile, std::string& 
                 nWalletBackups = -1;
                 return false;
             }
+        } else if (!fs::is_directory(backupsDir)) {
+            // smth is wrong, we shouldn't continue until it's resolved
+            strBackupError = strprintf(_("%s is not a valid backup folder!"), backupsDir.string());
+            LogPrintf("%s\n", strBackupError);
+            nWalletBackups = -1;
+            return false;
         }
 
         // Create backup of the ...

@@ -696,6 +696,7 @@ public:
     uint64_t nSendBytes;
     std::deque<CSerializeData> vSendMsg;
     CCriticalSection cs_vSend;
+    CCriticalSection cs_hSocket;
 
     CCriticalSection cs_vProcessMsg;
     std::list<CNetMessage> vProcessMsg;
@@ -740,7 +741,7 @@ public:
     CSemaphoreGrant grantDynodeOutbound;
     CCriticalSection cs_filter;
     CBloomFilter* pfilter;
-    int nRefCount;
+    std::atomic<int> nRefCount;
     const NodeId id;
 
     const uint64_t nKeyedNetGroup;
@@ -815,8 +816,6 @@ public:
     ~CNode();
 
 private:
-    CCriticalSection cs_nRefCount;
-
     CNode(const CNode&);
     void operator=(const CNode&);
 
@@ -841,7 +840,6 @@ public:
 
     int GetRefCount()
     {
-        LOCK(cs_nRefCount);
         assert(nRefCount >= 0);
         return nRefCount;
     }
@@ -861,16 +859,13 @@ public:
 
     CNode* AddRef()
     {
-        LOCK(cs_nRefCount);
         nRefCount++;
         return this;
     }
 
     void Release()
     {
-        LOCK(cs_nRefCount);
         nRefCount--;
-        assert(nRefCount >= 0);
     }
 
 

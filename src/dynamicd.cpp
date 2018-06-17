@@ -15,6 +15,7 @@
 #include "rpcserver.h"
 #include "scheduler.h"
 #include "util.h"
+#include "utilstrencodings.h"
 
 #include "dynodeconfig.h"
 
@@ -75,13 +76,13 @@ bool AppInit(int argc, char* argv[])
     ParseParameters(argc, argv);
 
     // Process help and version before taking care about datadir
-    if (mapArgs.count("-?") || mapArgs.count("-h") ||  mapArgs.count("-help") || mapArgs.count("-version"))
+    if (IsArgSet("-?") || IsArgSet("-h") ||  IsArgSet("-help") || IsArgSet("-version"))
     {
         std::string strUsage = _("Dynamic Daemon") + " " + _("version") + " " + FormatFullVersion() + "\n";
 
-        if (mapArgs.count("-version"))
+        if (IsArgSet("-version"))
         {
-            strUsage += LicenseInfo();
+            strUsage += FormatParagraph(LicenseInfo());
         }
         else
         {
@@ -97,22 +98,22 @@ bool AppInit(int argc, char* argv[])
 
     try
     {
-        bool datadirFromCmdLine = mapArgs.count("-datadir") != 0;
+        bool datadirFromCmdLine = IsArgSet("-datadir");
         if (datadirFromCmdLine && !boost::filesystem::is_directory(GetDataDir(false)))
         {
-            fprintf(stderr, "Error: Specified data directory \"%s\" does not exist.\n", mapArgs["-datadir"].c_str());
+            fprintf(stderr, "Error: Specified data directory \"%s\" does not exist.\n", GetArg("-datadir", "").c_str());
             return false;
         }
         try
         {
-            ReadConfigFile(GetArg("-conf", DYNAMIC_CONF_FILENAME), mapArgs, mapMultiArgs);
+            ReadConfigFile(GetArg("-conf", DYNAMIC_CONF_FILENAME));
         } catch (const std::exception& e) {
             fprintf(stderr,"Error reading configuration file: %s\n", e.what());
             return false;
         }
         if (!datadirFromCmdLine && !boost::filesystem::is_directory(GetDataDir(false)))
         {
-            fprintf(stderr, "Error: Specified data directory \"%s\" from config file does not exist.\n", mapArgs["-datadir"].c_str());
+            fprintf(stderr, "Error: Specified data directory \"%s\" from config file does not exist.\n", GetArg("-datadir", "").c_str());
             return EXIT_FAILURE;
         }
         // Check for -testnet or -regtest parameter (Params() calls are only valid after this clause)

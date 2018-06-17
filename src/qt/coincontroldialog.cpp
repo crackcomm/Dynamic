@@ -240,7 +240,7 @@ void CoinControlDialog::buttonToggleLockClicked()
         QMessageBox msgBox;
         msgBox.setObjectName("lockMessageBox");
         msgBox.setStyleSheet(GUIUtil::loadStyleSheet());
-        msgBox.setText(tr("Please switch to \"List mode\" to use this function."));
+        msgBox.setText(tr("Please switch to 'List mode' to use this function."));
         msgBox.exec();
     }
 }

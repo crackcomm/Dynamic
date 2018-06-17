@@ -63,9 +63,9 @@ static const bool DEFAULT_WHITELISTFORCERELAY = true;
 static const unsigned int DEFAULT_MIN_RELAY_TX_FEE = 1000;
 //! -maxtxfee default
 static const CAmount DEFAULT_TRANSACTION_MAXFEE = 0.2 * COIN; // "smallest denom" + X * "denom tails"
-//! Discourage users to set fees higher than this amount (in duffs) per kB
+//! Discourage users to set fees higher than this amount (in satoshis) per kB
 static const CAmount HIGH_TX_FEE_PER_KB = 0.01 * COIN;
-//! -maxtxfee will warn if called with a higher fee than this amount (in duffs)
+//! -maxtxfee will warn if called with a higher fee than this amount (in satoshis)
 static const CAmount HIGH_MAX_TX_FEE = 100 * HIGH_TX_FEE_PER_KB;
 /** Default for -limitancestorcount, max number of in-mempool ancestors */
 static const unsigned int DEFAULT_ANCESTOR_LIMIT = 100;
@@ -76,7 +76,7 @@ static const unsigned int DEFAULT_DESCENDANT_LIMIT = 100;
 /** Default for -limitdescendantsize, maximum kilobytes of in-mempool descendants */
 static const unsigned int DEFAULT_DESCENDANT_SIZE_LIMIT = 404;
 /** Default for -mempoolexpiry, expiration time for mempool transactions in hours */
-static const unsigned int DEFAULT_MEMPOOL_EXPIRY = 72;
+static const unsigned int DEFAULT_MEMPOOL_EXPIRY = 336;
 /** The maximum size of a blk?????.dat file (since 0.8) */
 static const unsigned int MAX_BLOCKFILE_SIZE = 0x20000000; // 512 MiB
 /** The pre-allocation chunk size for blk?????.dat files (since 0.8) */
@@ -138,7 +138,6 @@ static const bool DEFAULT_TIMESTAMPINDEX = false;
 static const bool DEFAULT_SPENTINDEX = false;
 static const unsigned int DEFAULT_BANSCORE_THRESHOLD = 100;
 
-static const bool DEFAULT_TESTSAFEMODE = false;
 /** Default for -mempoolreplacement */
 static const bool DEFAULT_ENABLE_REPLACEMENT = false;
 /** Default for using fee filter */

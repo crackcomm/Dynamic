@@ -168,6 +168,8 @@ void CTxMemPool::UpdateTransactionsFromBlock(const std::vector<uint256> &vHashes
 
 bool CTxMemPool::CalculateMemPoolAncestors(const CTxMemPoolEntry &entry, setEntries &setAncestors, uint64_t limitAncestorCount, uint64_t limitAncestorSize, uint64_t limitDescendantCount, uint64_t limitDescendantSize, std::string &errString, bool fSearchForParents /* = true */) const
 {
+    LOCK(cs);
+
     setEntries parentHashes;
     const CTransaction &tx = entry.GetTx();
 
@@ -1005,7 +1007,7 @@ CTxMemPool::WriteFeeEstimates(CAutoFile& fileout) const
 {
     try {
         LOCK(cs);
-        fileout << 1000000; // version required to read: 1.0.0.0 or later
+        fileout << 2030000; // version required to read: 2.3.0.0 or later
         fileout << CLIENT_VERSION; // version that wrote the file
         minerPolicyEstimator->Write(fileout);
     }
@@ -1052,6 +1054,13 @@ void CTxMemPool::PrioritiseTransaction(const uint256 hash, const std::string str
             CalculateMemPoolAncestors(*it, setAncestors, nNoLimit, nNoLimit, nNoLimit, nNoLimit, dummy, false);
             BOOST_FOREACH(txiter ancestorIt, setAncestors) {
                 mapTx.modify(ancestorIt, update_descendant_state(0, nFeeDelta, 0));
+            }
+            // Now update all descendants' modified fees with ancestors
+            setEntries setDescendants;
+            CalculateDescendants(it, setDescendants);
+            setDescendants.erase(it);
+            BOOST_FOREACH(txiter descendantIt, setDescendants) {
+                mapTx.modify(descendantIt, update_ancestor_state(0, nFeeDelta, 0, 0));
             }
         }
     }

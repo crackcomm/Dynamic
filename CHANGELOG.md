@@ -131,8 +131,40 @@
 * Add Sexy Sliders
 * Remove unused declaration in dynodeman.cpp
 * Add check to ensure that generatetoaddress doesn't function on Main or TestNet
-* [Miner] check for dynode syn before mining
+* [Miner] check for dynode sync before mining
 * Hash Rate Widget for Mining Page
+* [Dynode] Remove lock in ReadBlockFromDisk
+* Initial complete Korean translation added
+* add include to enable wallet to be built disabled
+* Fix Unlocking Error When Mixing
+* Refactor and fix restart
+* Fix segfault crash when shutdown the GUI in disablewallet mode
+* Increase mempool expiry time to 2 weeks
+* [CoinControl] Allow non-wallet owned change addresses
+* Allow shutdown during LoadMempool, dump only when necessary
+* Add IsArgSet, ForceSetArg, ForceSetMultiArgs, ForceRemoveArg & new critical section
+* [bugfix] save feeDelta instead of priorityDelta in DumpMempool
+* Add missing mempool lock for CalculateMemPoolAncestors
+* Qt/Intro: Various fixes
+* [net]Fix close socket loop
+* Bugfix: ancestor modifed fees were incorrect for descendants
+* Fix Dynode List
+* Remove some locking in net.h/net.cpp
+* Fix connectivity check in CActiveDynode::ManageStateInitial
+* Force Dynodes to have listen=1 and maxconnections to be at least DEFAULT_MAX_PEER_CONNECTIONS
+* fix SelectCoinsByDenominations
+* [Init] Avoid segfault when called with -enableinstantsend=0
+* Use correct version for fee estimates db
+* Fix args throughout wallet
+* Remove AddRef call in CNode constructor and do AddRef in AcceptConnection
+* Fix races, clean up args, move wallet backup dir check to wallet.cpp
+* Added check for open() returning a NULL pointer.
+* Limit IS quorums by updated DNs only
+* Fix nStart warning and actually use it
+* Fix LevelDB warning in leveldb/util/logging.cc
+* Update univalue and secp256k1 libraries (June 2018)
+* Bump dynodeman versionCDynodeMan-Version to 2
+* Bump CGovernanceManager version to 23 to signify v2.3
 * Update CHANGELOG
 
 **Dynamic v2.2.0.0**
@@ -160,7 +192,7 @@
 
 **Dynamic v2.1.0.0**
 
-* [Trivial] Shift non-Fluid specific operations to seperate file
+* [Trivial] Shift non-Fluid specific operations to separate file
 * [Script] Remove OPCODES from non-existent features
 * Add tags to mempool's mapTx indices
 * remove unused NOBLKS_VERSION_{START,END} constants
