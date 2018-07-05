@@ -4,12 +4,13 @@
 #define DYNAMIC_ARGON2_GPU
 
 #ifdef ENABLE_GPU
-#define HAVE_CUDA
+
+#define HAVE_CUDA 1
 
 #include <cstddef>
 
 #include "argon2-gpu/common.h"
-#ifndef HAVE_CUDA
+#ifdef HAVE_CUDA
 #include "argon2-cuda/cuda-exception.h"
 #include "argon2-cuda/processing-unit.h"
 #else
@@ -19,7 +20,7 @@
 
 using Argon2GPUParams = argon2gpu::Argon2Params;
 
-#ifndef HAVE_CUDA
+#ifdef HAVE_CUDA
 using Argon2GPU = argon2gpu::cuda::ProcessingUnit;
 using Argon2GPUDevice = argon2gpu::cuda::Device;
 using Argon2GPUContext = argon2gpu::cuda::GlobalContext;
