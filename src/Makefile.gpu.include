@@ -15,7 +15,7 @@ else
   LIBDYNAMIC_GPU_LDADD += -lOpenCL
 endif
 
-crypto_argon2gpu_libdynamic_gpu_a_CPPFLAGS = $(DYNAMIC_INCLUDES) $(ZMQ_CFLAGS)
+crypto_argon2gpu_libdynamic_gpu_a_CPPFLAGS = $(DYNAMIC_INCLUDES)
 crypto_argon2gpu_libdynamic_gpu_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 crypto_argon2gpu_libdynamic_gpu_a_SOURCES = \
   crypto/argon2gpu/argon2-gpu/blake2b.h \
