@@ -503,25 +503,6 @@ static void WaitForNetworkInit(const CChainParams& chainparams, CConnman& connma
     }
 }
 
-#ifdef ENABLE_GPU
-static Argon2GPU GetProcessingUnit(std::size_t nDeviceIndex, bool fGPU) {
-    if (!fGPU) {
-        Argon2GPU processingUnit(nullptr, nullptr, nullptr, 1, false, false);
-        return processingUnit;
-    }
-    else {
-        // Argon2GPU processingUnit = GetGPUProcessingUnit(nDeviceIndex);
-        Argon2GPUContext global;
-        auto& devices = global.getAllDevices();
-        auto& device = devices[nDeviceIndex];
-        Argon2GPUProgramContext context(&global, {device}, argon2gpu::ARGON2_D, argon2gpu::ARGON2_VERSION_10);
-        Argon2GPUParams params((std::size_t)OUTPUT_BYTES, 2, 500, 8);
-        Argon2GPU processingUnit(&context, &params, &device, 1, false, false);
-        return processingUnit;
-    }
-}
-#endif // ENABLE_GPU
-
 static void DynamicMiner(const CChainParams& chainparams, CConnman& connman, std::size_t nDeviceIndex, bool fGPU) {
 
     std::string dev = fGPU ? "GPU" : "CPU";
