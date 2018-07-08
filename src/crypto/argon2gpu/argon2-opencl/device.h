@@ -19,7 +19,7 @@
 #ifndef ARGON2_OPENCL_DEVICE_H
 #define ARGON2_OPENCL_DEVICE_H
 
-#include "argon2-opencl/opencl.h"
+#include "crypto/argon2gpu/argon2-opencl/opencl.h"
 
 namespace argon2gpu
 {

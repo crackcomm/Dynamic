@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "argon2-opencl/global-context.h"
+#include "crypto/argon2gpu/argon2-opencl/global-context.h"
 
 #include <iostream>
 
@@ -27,8 +27,11 @@ namespace opencl
 GlobalContext::GlobalContext()
     : devices()
 {
+    std::clog << "globalcontextinit <" << std::endl;
     std::vector<cl::Platform> platforms;
+    std::clog << "cl::Platform::get <" << std::endl;
     cl::Platform::get(&platforms);
+    std::clog << "cl::Platform::get >" << std::endl;
 
     std::vector<cl::Device> clDevices;
     for (cl::Platform platform : platforms)

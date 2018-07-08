@@ -8,7 +8,6 @@ EXTRA_LIBRARIES =
 DYNAMIC_CONFIG_INCLUDES=-I$(builddir)/config
 DYNAMIC_INCLUDES=-I$(builddir) -I$(builddir)/obj $(BOOST_CPPFLAGS) $(LEVELDB_CPPFLAGS) $(CRYPTO_CFLAGS) $(SSL_CFLAGS)
 
-DYNAMIC_INCLUDES += -I$(top_srcdir)/contrib/argon2-gpu/include -I/usr/local/cuda-9.2/include
 DYNAMIC_INCLUDES += -I$(srcdir)/secp256k1/include
 DYNAMIC_INCLUDES += -I$(srcdir)/univalue/include
 
@@ -42,9 +41,6 @@ EXTRA_LIBRARIES += libdynamic_wallet.a
 endif
 if ENABLE_ZMQ
 EXTRA_LIBRARIES += libdynamic_zmq.a
-endif
-if ENABLE_GPU
-EXTRA_LIBRARIES += libdynamic_gpu.a
 endif
 
 if BUILD_DYNAMIC_LIBS
@@ -291,61 +287,6 @@ libdynamic_zmq_a_SOURCES = \
   zmq/zmqpublishnotifier.cpp
 endif
 
-if ENABLE_GPU
-LIBDYNAMIC_GPU=libdynamic_gpu.a
-LIBDYNAMIC_GPU_LDADD = \
-    -L/usr/lib/x86_64-linux-gnu \
-    $(CUDA_LDFLAGS) \
-    $(LIBDYNAMIC_GPU)
-
-if TARGET_DARWIN
-LIBDYNAMIC_GPU_LDADD += "-framework OpenCL"
-else
-LIBDYNAMIC_GPU_LDADD += -lOpenCL
-endif
-
-LIBDYNAMIC_GPU_DIR=crypto/argon2gpu
-
-libdynamic_gpu_a_CPPFLAGS = $(DYNAMIC_INCLUDES) $(ZMQ_CFLAGS)
-libdynamic_gpu_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-libdynamic_gpu_a_SOURCES = \
-  $(LIBDYNAMIC_GPU_DIR)/argon2-gpu/blake2b.h \
-  $(LIBDYNAMIC_GPU_DIR)/argon2-gpu/common.h \
-  $(LIBDYNAMIC_GPU_DIR)/argon2-gpu/common.cpp \
-  $(LIBDYNAMIC_GPU_DIR)/argon2-gpu/blake2b.cpp
-
-if CUDA_FOUND
-libdynamic_gpu_a_SOURCES += \
-  $(LIBDYNAMIC_GPU_DIR)/argon2-cuda/cuda-exception.h \
-  $(LIBDYNAMIC_GPU_DIR)/argon2-cuda/device.h \
-  $(LIBDYNAMIC_GPU_DIR)/argon2-cuda/global-context.h \
-  $(LIBDYNAMIC_GPU_DIR)/argon2-cuda/kernels.h \
-  $(LIBDYNAMIC_GPU_DIR)/argon2-cuda/processing-unit.h \
-  $(LIBDYNAMIC_GPU_DIR)/argon2-cuda/program-context.h \
-  $(LIBDYNAMIC_GPU_DIR)/argon2-cuda/device.cpp \
-  $(LIBDYNAMIC_GPU_DIR)/argon2-cuda/global-context.cpp \
-  $(LIBDYNAMIC_GPU_DIR)/argon2-cuda/kernels.cu \
-  $(LIBDYNAMIC_GPU_DIR)/argon2-cuda/processing-unit.cpp \
-  $(LIBDYNAMIC_GPU_DIR)/argon2-cuda/program-context.cpp
-else
-libdynamic_gpu_a_SOURCES += \
-  $(LIBDYNAMIC_GPU_DIR)/argon2-opencl/cl.hpp \
-  $(LIBDYNAMIC_GPU_DIR)/argon2-opencl/device.h \
-  $(LIBDYNAMIC_GPU_DIR)/argon2-opencl/global-context.h \
-  $(LIBDYNAMIC_GPU_DIR)/argon2-opencl/kernel-loader.h \
-  $(LIBDYNAMIC_GPU_DIR)/argon2-opencl/kernel-runner.h \
-  $(LIBDYNAMIC_GPU_DIR)/argon2-opencl/opencl.h \
-  $(LIBDYNAMIC_GPU_DIR)/argon2-opencl/processing-unit.h \
-  $(LIBDYNAMIC_GPU_DIR)/argon2-opencl/program-context.h \
-  $(LIBDYNAMIC_GPU_DIR)/argon2-opencl/device.cpp \
-  $(LIBDYNAMIC_GPU_DIR)/argon2-opencl/global-context.cpp \
-  $(LIBDYNAMIC_GPU_DIR)/argon2-opencl/kernel-loader.cpp \
-  $(LIBDYNAMIC_GPU_DIR)/argon2-opencl/kernel-runner.cpp \
-  $(LIBDYNAMIC_GPU_DIR)/argon2-opencl/processing-unit.cpp \
-  $(LIBDYNAMIC_GPU_DIR)/argon2-opencl/program-context.cpp
-endif
-endif
-
 # wallet: shared between dynamicd and dynamic-qt, but only linked
 # when wallet enabled
 libdynamic_wallet_a_CPPFLAGS = $(AM_CPPFLAGS) $(DYNAMIC_INCLUDES)
@@ -495,10 +436,6 @@ if ENABLE_WALLET
 dynamicd_LDADD += libdynamic_wallet.a
 endif
 
-if ENABLE_GPU
-dynamicd_LDADD += $(LIBDYNAMIC_GPU_LDADD)
-endif
-
 dynamicd_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS)
 
 # dynamic-cli binary #
@@ -619,6 +556,10 @@ endif
 
 if EMBEDDED_LEVELDB
 include Makefile.leveldb.include
+endif
+
+if ENABLE_GPU
+include Makefile.gpu.include
 endif
 
 if ENABLE_TESTS

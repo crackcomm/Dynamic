@@ -18,7 +18,7 @@
 #ifndef ARGON2_OPENCL_GLOBALCONTEXT_H
 #define ARGON2_OPENCL_GLOBALCONTEXT_H
 
-#include "argon2-opencl/device.h"
+#include "crypto/argon2gpu/argon2-opencl/device.h"
 
 #include <string>
 #include <vector>

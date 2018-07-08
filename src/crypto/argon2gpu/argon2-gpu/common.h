@@ -23,17 +23,14 @@
 
 #include <stddef.h>
 
+#include "crypto/argon2d/argon2.h"
+
 namespace argon2gpu
 {
-
-#ifndef ARGON2_SYNC_POINTS
-#define ARGON2_SYNC_POINTS 4
-#endif
 
 enum
 {
     ARGON2_BLOCK_SIZE = 1024,
-    // ARGON2_SYNC_POINTS = 4,
     ARGON2_PREHASH_DIGEST_LENGTH = 64,
     ARGON2_PREHASH_SEED_LENGTH = 72
 };

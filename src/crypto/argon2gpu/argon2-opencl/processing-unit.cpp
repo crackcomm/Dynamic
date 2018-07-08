@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "argon2-opencl/processing-unit.h"
+#include "crypto/argon2gpu/argon2-opencl/processing-unit.h"
 
 #include <limits>
 #ifndef NDEBUG

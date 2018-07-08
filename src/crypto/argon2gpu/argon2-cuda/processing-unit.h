@@ -25,7 +25,7 @@
 
 #include "program-context.h"
 #include "kernels.h"
-#include "argon2-gpu/common.h"
+#include "crypto/argon2gpu/argon2-gpu/common.h"
 
 namespace argon2gpu
 {
@@ -66,7 +66,7 @@ class ProcessingUnit
 #include <cstddef>
 
 #include "program-context.h"
-#include "argon2-gpu/common.h"
+#include "crypto/argon2gpu/argon2-gpu/common.h"
 
 namespace argon2gpu
 {

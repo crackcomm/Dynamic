@@ -18,8 +18,8 @@
 #ifndef ARGON2_OPENCL_PROGRAMCONTEXT_H
 #define ARGON2_OPENCL_PROGRAMCONTEXT_H
 
-#include "argon2-opencl/global-context.h"
-#include "argon2-gpu/common.h"
+#include "crypto/argon2gpu/argon2-opencl/global-context.h"
+#include "crypto/argon2gpu/argon2-gpu/common.h"
 
 namespace argon2gpu
 {

@@ -1066,6 +1066,7 @@ AM_CONDITIONAL([GLIBC_BACK_COMPAT],[test x$use_glibc_compat = xyes])
 AM_CONDITIONAL([HARDEN],[test x$use_hardening = xyes])
 AM_CONDITIONAL([ENABLE_SSE42],[test x$enable_sse42 = xyes])
 AM_CONDITIONAL([HAVE_CUDA], [test "${CUDA_FOUND}" = "1"])
+AM_CONDITIONAL([CUDA_FOUND], [test "${CUDA_FOUND}" = "1"])
 
 AC_DEFINE(CLIENT_VERSION_MAJOR, _CLIENT_VERSION_MAJOR, [Major version])
 AC_DEFINE(CLIENT_VERSION_MINOR, _CLIENT_VERSION_MINOR, [Minor version])

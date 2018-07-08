@@ -15,8 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "argon2-opencl/program-context.h"
-#include "argon2-opencl/kernel-loader.h"
+#include "crypto/argon2gpu/argon2-opencl/program-context.h"
+#include "crypto/argon2gpu/argon2-opencl/kernel-loader.h"
 
 namespace argon2gpu
 {
@@ -38,7 +38,7 @@ ProgramContext::ProgramContext(
 
     program = KernelLoader::loadArgon2Program(
         // FIXME path:
-        context, "./src/argon2-opencl", type, version);
+        context, "./src/crypto/argon2gpu/argon2-opencl", type, version);
 }
 
 } // namespace opencl

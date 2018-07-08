@@ -20,7 +20,7 @@
 
 #include <memory>
 
-#include "argon2-opencl/kernel-runner.h"
+#include "crypto/argon2gpu/argon2-opencl/kernel-runner.h"
 
 namespace argon2gpu
 {

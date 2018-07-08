@@ -15,8 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "argon2-gpu/common.h"
-#include "argon2-gpu/blake2b.h"
+#include "crypto/argon2gpu/argon2-gpu/common.h"
+#include "crypto/argon2gpu/argon2-gpu/blake2b.h"
 
 #include <cstring>
 #include <algorithm>

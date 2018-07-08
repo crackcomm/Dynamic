@@ -20,7 +20,7 @@
 #define ARGON2_CUDA_PROGRAMCONTEXT_H
 
 #include "global-context.h"
-#include "argon2-gpu/common.h"
+#include "crypto/argon2gpu/argon2-gpu/common.h"
 
 namespace argon2gpu
 {
