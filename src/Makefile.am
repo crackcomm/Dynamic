@@ -22,7 +22,8 @@ LIBDYNAMICQT=qt/libdynamicqt.a
 LIBSECP256K1=secp256k1/libsecp256k1.la
 LIBUNIVALUE=univalue/libunivalue.la
 
-argon2GPULIBS = \
+ARGON2GPULIBS = \
+  -lOpenCL \
   -largon2-gpu \
   -largon2-opencl \
   -largon2-cuda
@@ -444,7 +445,7 @@ dynamicd_LDADD += libdynamic_wallet.a
 endif
 
 if ENABLE_GPU
-dynamicd_LDADD += -L/usr/local/cuda-9.2/lib64 -L/usr/lib/x86_64-linux-gnu -lOpenCL $(argon2GPULIBS)
+dynamicd_LDADD += -L/usr/local/cuda-9.2/lib64 -L/usr/lib/x86_64-linux-gnu $(ARGON2GPULIBS)
 endif
 
 dynamicd_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS)
