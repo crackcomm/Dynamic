@@ -23,7 +23,6 @@ LIBSECP256K1=secp256k1/libsecp256k1.la
 LIBUNIVALUE=univalue/libunivalue.la
 
 argon2GPULIBS = \
-  -largon2 \
   -largon2-gpu \
   -largon2-opencl \
   -largon2-cuda

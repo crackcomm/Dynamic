@@ -75,17 +75,17 @@ bool TestSequenceLocks(const CTransaction &tx, int flags)
 }
 
 
-#ifdef ENABLE_GPU
 #include "miner-gpu.h"
 
+#ifdef ENABLE_GPU
 BOOST_AUTO_TEST_CASE(GetHashGPU_check)
 {
-    Argon2Context global;
+    Argon2GPUContext global;
     auto& devices = global.getAllDevices();
     auto& device = devices[0];
-    ProgramContext progCtx(&global, {device}, argon2::ARGON2_D, argon2::ARGON2_VERSION_10);
-    Argon2Params params((std::size_t)OUTPUT_BYTES, 2, 500, 8);
-    ProcessingUnit pu(&progCtx, &params, &device, 1, false, false);
+    Argon2GPUProgramContext context(&global, {device}, argon2gpu::ARGON2_D, argon2gpu::ARGON2_VERSION_10);
+    Argon2GPUParams params((std::size_t)OUTPUT_BYTES, 2, 500, 8);
+    Argon2GPU processingUnit(&context, &params, &device, 1, false, false);
 
     // Random real block (000000005a4ded781e667e06ceefafb71410b511fe0d5adc3e5a27ecbec34ae6)
     // With 4 txes
@@ -94,7 +94,7 @@ BOOST_AUTO_TEST_CASE(GetHashGPU_check)
     stream >> block;
 
 
-    BOOST_CHECK(block.GetHash() == GetBlockHashGPU(&block, &pu));
+    BOOST_CHECK(block.GetHash() == GetBlockHashGPU(&block, &processingUnit));
 }
 #endif //ENABLE_GPU
 
