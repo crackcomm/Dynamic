@@ -98,6 +98,11 @@ AC_ARG_ENABLE([gpu],
     [enable_gpu=$enableval],
     [enable_gpu=yes])
 
+AC_ARG_WITH([cuda],
+    [AS_HELP_STRING([--with-cuda],[prefix of the CUDA installation, e.g. /usr/local/cuda])], 
+    [cuda_prefix=$withval],
+    [cuda_prefix="/usr/local/cuda"])
+
 AC_ARG_WITH([miniupnpc],
   [AS_HELP_STRING([--with-miniupnpc],
   [enable UPNP (default is yes if libminiupnpc is found)])],
@@ -265,14 +270,6 @@ AC_ARG_WITH([daemon],
   [build dynamicd daemon (default=yes)])],
   [build_dynamicd=$withval],
   [build_dynamicd=yes])
-
-# AC_ARG_WITH([gpu],
-#   [AS_HELP_STRING([--enable-gpu],
-#   [enable GPU optimizations (defaults is yes)])],
-#   AC_SUBST(HAVE_CUDA, 1),
-#   AC_SUBST(ENABLE_GPU, 1),
-#   [have_gpu=${enableval}],
-#   [have_gpu=yes])
 
 use_pkgconfig=yes
 case $host in
@@ -943,6 +940,27 @@ fi
 
 AC_DEFINE_UNQUOTED([ENABLE_GPU],[1],[Define to 1 to enable gpu functions])
 
+dnl Checking for nvcc
+AC_MSG_CHECKING([nvcc in $cuda_prefix/bin])
+if test -x "$cuda_prefix/bin/nvcc"; then
+  AC_MSG_RESULT([found])
+  AC_DEFINE_UNQUOTED([NVCC_PATH], ["$cuda_prefix/bin/nvcc"], [path to nvcc binary])
+  AC_SUBST(HAVE_CUDA, 1)
+  CUDA_FOUND="1"
+  CUDA_CFLAGS="-I$cuda_prefix/include
+  CUDA_LDFLAGS="-L$cuda_prefix/lib64"
+  CUDA_NVCC_FLAGS="$CUDA_NVCC_FLAGS;-std=c++11;-O3;--ptxas-options=-v;-arch sm_30;-lineinfo"
+else
+  AC_MSG_RESULT([not found!])
+  AC_MSG_WARN([nvcc was not found in $cuda_prefix/bin])
+fi
+
+dnl if cuda has been found check the header and the lib
+if test "$CUDA_FOUND" == "1"; then
+  AC_CHECK_HEADER([cuda.h], [], AC_MSG_FAILURE([Couldn't find cuda.h]), [#include <cuda.h>])
+  AC_CHECK_LIB([cuda], [cuInit], [], AC_MSG_FAILURE([Couldn't find libcuda]))
+fi
+
 dnl enable upnp support
 AC_MSG_CHECKING([whether to build with support for UPnP])
 if test x$have_miniupnpc = xno; then
@@ -1048,6 +1066,7 @@ AM_CONDITIONAL([USE_COMPARISON_TOOL_REORG_TESTS],[test x$use_comparison_tool_reo
 AM_CONDITIONAL([GLIBC_BACK_COMPAT],[test x$use_glibc_compat = xyes])
 AM_CONDITIONAL([HARDEN],[test x$use_hardening = xyes])
 AM_CONDITIONAL([ENABLE_SSE42],[test x$enable_sse42 = xyes])
+AM_CONDITIONAL([HAVE_CUDA], [test "${CUDA_FOUND}" = "1"])
 
 AC_DEFINE(CLIENT_VERSION_MAJOR, _CLIENT_VERSION_MAJOR, [Major version])
 AC_DEFINE(CLIENT_VERSION_MINOR, _CLIENT_VERSION_MINOR, [Minor version])
