@@ -294,8 +294,8 @@ endif
 if ENABLE_GPU
 LIBDYNAMIC_GPU=libdynamic_gpu.a
 LIBDYNAMIC_GPU_LDADD = \
-    -L/usr/local/cuda-9.2/lib64 \
     -L/usr/lib/x86_64-linux-gnu \
+    $(CUDA_LDFLAGS) \
     $(LIBDYNAMIC_GPU)
 
 if TARGET_DARWIN
@@ -303,13 +303,6 @@ LIBDYNAMIC_GPU_LDADD += "-framework OpenCL"
 else
 LIBDYNAMIC_GPU_LDADD += -lOpenCL
 endif
-
-# TODO:
-# if(CUDA_FOUND)
-#     set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};
-#         -std=c++11;-O3;--ptxas-options=-v;-arch sm_30;-lineinfo
-#     )
-# endif()
 
 LIBDYNAMIC_GPU_DIR=crypto/argon2gpu
 
