@@ -948,9 +948,7 @@ if test -x "$cuda_prefix/bin/nvcc"; then
   AC_SUBST(HAVE_CUDA, 1)
   CUDA_FOUND="1"
   CUDA_CFLAGS="-I$cuda_prefix/include"
-  CXXFLAGS="$CUDA_CFLAGS $CXXFLAGS"
   CUDA_LDFLAGS="-L$cuda_prefix/lib64"
-  LDFLAGS="$CUDA_LDFLAGS $LDFLAGS"
   CUDA_NVCC_FLAGS="$CUDA_NVCC_FLAGS;-std=c++11;-O3;--ptxas-options=-v;-arch sm_30;-lineinfo"
 else
   AC_MSG_RESULT([not found!])
@@ -959,8 +957,7 @@ fi
 
 dnl if cuda has been found check the header and the lib
 if test "$CUDA_FOUND" == "1"; then
-  AC_CHECK_HEADER([cuda.h], [], AC_MSG_FAILURE([Couldn't find cuda.h]), [#include <cuda.h>])
-  AC_CHECK_LIB([cuda], [cuInit], [], AC_MSG_FAILURE([Couldn't find libcuda]))
+  AC_CHECK_HEADER([cuda_runtime.h],, AC_MSG_ERROR(libcuda headers missing),)
 fi
 
 dnl enable upnp support
