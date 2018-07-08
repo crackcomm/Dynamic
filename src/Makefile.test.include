@@ -122,7 +122,7 @@ if ENABLE_ZMQ
 test_test_dynamic_LDADD += $(ZMQ_LIBS)
 endif
 if ENABLE_GPU
-test_test_dynamic_LDADD += -L/usr/local/cuda-9.2/lib64 -L/usr/lib/x86_64-linux-gnu $(ARGON2GPULIBS)
+test_test_dynamic_LDADD += $(LIBDYNAMIC_GPU_LDADD)
 endif
 
 nodist_test_test_dynamic_SOURCES = $(GENERATED_TEST_FILES)
