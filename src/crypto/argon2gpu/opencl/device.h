@@ -19,23 +19,22 @@
 #ifndef ARGON2_OPENCL_DEVICE_H
 #define ARGON2_OPENCL_DEVICE_H
 
-#include "crypto/argon2gpu/argon2-opencl/opencl.h"
+#include "crypto/argon2gpu/opencl/opencl.h"
 
 namespace argon2gpu
 {
 namespace opencl
 {
-
 class Device
 {
-  private:
+private:
     cl::Device device;
 
-  public:
+public:
     std::string getName() const;
     std::string getInfo() const;
 
-    const cl::Device &getCLDevice() const { return device; }
+    const cl::Device& getCLDevice() const { return device; }
 
     /**
      * @brief Empty constructor.
@@ -44,15 +43,15 @@ class Device
      */
     Device() {}
 
-    Device(const cl::Device &device)
+    Device(const cl::Device& device)
         : device(device)
     {
     }
 
-    Device(const Device &) = default;
-    Device(Device &&) = default;
+    Device(const Device&) = default;
+    Device(Device&&) = default;
 
-    Device &operator=(const Device &) = default;
+    Device& operator=(const Device&) = default;
 };
 
 } // namespace opencl

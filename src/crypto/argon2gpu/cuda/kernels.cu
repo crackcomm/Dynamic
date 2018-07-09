@@ -3,8 +3,8 @@
 #define __CUDACC__
 #endif
 
-#include "crypto/argon2gpu/argon2-cuda/kernels.h"
-#include "crypto/argon2gpu/argon2-cuda/cuda-exception.h"
+#include "crypto/argon2gpu/da-exception.h"
+#include "crypto/argon2gpu/rnels.h"
 
 #include <stdexcept>
 #ifndef NDEBUG
@@ -29,7 +29,6 @@ namespace argon2gpu
 {
 namespace cuda
 {
-
 using namespace std;
 
 __device__ uint64_t u64_build(uint32_t hi, uint32_t lo)
@@ -56,13 +55,11 @@ __device__ uint64_t u64_shuffle(uint64_t v, uint32_t thread)
     return u64_build(hi, lo);
 }
 
-struct block_g
-{
+struct block_g {
     uint64_t data[ARGON2_QWORDS_IN_BLOCK];
 };
 
-struct block_th
-{
+struct block_th {
     uint64_t a, b, c, d;
 };
 
@@ -72,7 +69,7 @@ __device__ uint64_t cmpeq_mask(uint32_t test, uint32_t ref)
     return u64_build(x, x);
 }
 
-__device__ uint64_t block_th_get(const struct block_th *b, uint32_t idx)
+__device__ uint64_t block_th_get(const struct block_th* b, uint32_t idx)
 {
     uint64_t res = 0;
     res ^= cmpeq_mask(idx, 0) & b->a;
@@ -82,7 +79,7 @@ __device__ uint64_t block_th_get(const struct block_th *b, uint32_t idx)
     return res;
 }
 
-__device__ void block_th_set(struct block_th *b, uint32_t idx, uint64_t v)
+__device__ void block_th_set(struct block_th* b, uint32_t idx, uint64_t v)
 {
     b->a ^= cmpeq_mask(idx, 0) & (v ^ b->a);
     b->b ^= cmpeq_mask(idx, 1) & (v ^ b->b);
@@ -90,12 +87,12 @@ __device__ void block_th_set(struct block_th *b, uint32_t idx, uint64_t v)
     b->d ^= cmpeq_mask(idx, 3) & (v ^ b->d);
 }
 
-__device__ void move_block(struct block_th *dst, const struct block_th *src)
+__device__ void move_block(struct block_th* dst, const struct block_th* src)
 {
     *dst = *src;
 }
 
-__device__ void xor_block(struct block_th *dst, const struct block_th *src)
+__device__ void xor_block(struct block_th* dst, const struct block_th* src)
 {
     dst->a ^= src->a;
     dst->b ^= src->b;
@@ -103,8 +100,7 @@ __device__ void xor_block(struct block_th *dst, const struct block_th *src)
     dst->d ^= src->d;
 }
 
-__device__ void load_block(struct block_th *dst, const struct block_g *src,
-                           uint32_t thread)
+__device__ void load_block(struct block_th* dst, const struct block_g* src, uint32_t thread)
 {
     dst->a = src->data[0 * THREADS_PER_LANE + thread];
     dst->b = src->data[1 * THREADS_PER_LANE + thread];
@@ -112,8 +108,7 @@ __device__ void load_block(struct block_th *dst, const struct block_g *src,
     dst->d = src->data[3 * THREADS_PER_LANE + thread];
 }
 
-__device__ void load_block_xor(struct block_th *dst, const struct block_g *src,
-                               uint32_t thread)
+__device__ void load_block_xor(struct block_th* dst, const struct block_g* src, uint32_t thread)
 {
     dst->a ^= src->data[0 * THREADS_PER_LANE + thread];
     dst->b ^= src->data[1 * THREADS_PER_LANE + thread];
@@ -121,8 +116,7 @@ __device__ void load_block_xor(struct block_th *dst, const struct block_g *src,
     dst->d ^= src->data[3 * THREADS_PER_LANE + thread];
 }
 
-__device__ void store_block(struct block_g *dst, const struct block_th *src,
-                            uint32_t thread)
+__device__ void store_block(struct block_g* dst, const struct block_th* src, uint32_t thread)
 {
     dst->data[0 * THREADS_PER_LANE + thread] = src->a;
     dst->data[1 * THREADS_PER_LANE + thread] = src->b;
@@ -142,7 +136,7 @@ __device__ uint64_t f(uint64_t x, uint64_t y)
     return x + y + 2 * u64_build(__umulhi(xlo, ylo), xlo * ylo);
 }
 
-__device__ void g(struct block_th *block)
+__device__ void g(struct block_th* block)
 {
     uint64_t a, b, c, d;
     a = block->a;
@@ -166,10 +160,9 @@ __device__ void g(struct block_th *block)
 }
 
 template <class shuffle>
-__device__ void apply_shuffle(struct block_th *block, uint32_t thread)
+__device__ void apply_shuffle(struct block_th* block, uint32_t thread)
 {
-    for (uint32_t i = 0; i < QWORDS_PER_THREAD; i++)
-    {
+    for (uint32_t i = 0; i < QWORDS_PER_THREAD; i++) {
         uint32_t src_thr = shuffle::apply(thread, i);
 
         uint64_t v = block_th_get(block, i);
@@ -178,11 +171,10 @@ __device__ void apply_shuffle(struct block_th *block, uint32_t thread)
     }
 }
 
-__device__ void transpose(struct block_th *block, uint32_t thread)
+__device__ void transpose(struct block_th* block, uint32_t thread)
 {
     uint32_t thread_group = (thread & 0x0C) >> 2;
-    for (uint32_t i = 1; i < QWORDS_PER_THREAD; i++)
-    {
+    for (uint32_t i = 1; i < QWORDS_PER_THREAD; i++) {
         uint32_t thr = (i << 2) ^ thread;
         uint32_t idx = thread_group ^ i;
 
@@ -192,24 +184,21 @@ __device__ void transpose(struct block_th *block, uint32_t thread)
     }
 }
 
-struct identity_shuffle
-{
+struct identity_shuffle {
     __device__ static uint32_t apply(uint32_t thread, uint32_t idx)
     {
         return thread;
     }
 };
 
-struct shift1_shuffle
-{
+struct shift1_shuffle {
     __device__ static uint32_t apply(uint32_t thread, uint32_t idx)
     {
         return (thread & 0x1c) | ((thread + idx) & 0x3);
     }
 };
 
-struct unshift1_shuffle
-{
+struct unshift1_shuffle {
     __device__ static uint32_t apply(uint32_t thread, uint32_t idx)
     {
         idx = (QWORDS_PER_THREAD - idx) % QWORDS_PER_THREAD;
@@ -218,8 +207,7 @@ struct unshift1_shuffle
     }
 };
 
-struct shift2_shuffle
-{
+struct shift2_shuffle {
     __device__ static uint32_t apply(uint32_t thread, uint32_t idx)
     {
         uint32_t lo = (thread & 0x1) | ((thread & 0x10) >> 3);
@@ -228,8 +216,7 @@ struct shift2_shuffle
     }
 };
 
-struct unshift2_shuffle
-{
+struct unshift2_shuffle {
     __device__ static uint32_t apply(uint32_t thread, uint32_t idx)
     {
         idx = (QWORDS_PER_THREAD - idx) % QWORDS_PER_THREAD;
@@ -240,7 +227,7 @@ struct unshift2_shuffle
     }
 };
 
-__device__ void shuffle_block(struct block_th *block, uint32_t thread)
+__device__ void shuffle_block(struct block_th* block, uint32_t thread)
 {
     transpose(block, thread);
 
@@ -262,8 +249,7 @@ __device__ void shuffle_block(struct block_th *block, uint32_t thread)
     apply_shuffle<unshift2_shuffle>(block, thread);
 }
 
-__device__ void next_addresses(struct block_th *addr, struct block_th *tmp,
-                               uint32_t thread_input, uint32_t thread)
+__device__ void next_addresses(struct block_th* addr, struct block_th* tmp, uint32_t thread_input, uint32_t thread)
 {
     addr->a = u64_build(0, thread_input);
     addr->b = 0;
@@ -281,49 +267,46 @@ __device__ void next_addresses(struct block_th *addr, struct block_th *tmp,
 }
 
 __device__ void compute_ref_pos(
-    uint32_t lanes, uint32_t segment_blocks,
-    uint32_t pass, uint32_t lane, uint32_t slice, uint32_t offset,
-    uint32_t *ref_lane, uint32_t *ref_index)
+    uint32_t lanes,
+    uint32_t segment_blocks,
+    uint32_t pass,
+    uint32_t lane,
+    uint32_t slice,
+    uint32_t offset,
+    uint32_t* ref_lane,
+    uint32_t* ref_index)
 {
     uint32_t lane_blocks = ARGON2_SYNC_POINTS * segment_blocks;
 
     *ref_lane = *ref_lane % lanes;
 
     uint32_t base;
-    if (pass != 0)
-    {
+    if (pass != 0) {
         base = lane_blocks - segment_blocks;
-    }
-    else
-    {
-        if (slice == 0)
-        {
+    } else {
+        if (slice == 0) {
             *ref_lane = lane;
         }
         base = slice * segment_blocks;
     }
 
     uint32_t ref_area_size = base + offset - 1;
-    if (*ref_lane != lane)
-    {
+    if (*ref_lane != lane) {
         ref_area_size = min(ref_area_size, base);
     }
 
     *ref_index = __umulhi(*ref_index, *ref_index);
     *ref_index = ref_area_size - 1 - __umulhi(ref_area_size, *ref_index);
 
-    if (pass != 0 && slice != ARGON2_SYNC_POINTS - 1)
-    {
+    if (pass != 0 && slice != ARGON2_SYNC_POINTS - 1) {
         *ref_index += (slice + 1) * segment_blocks;
-        if (*ref_index >= lane_blocks)
-        {
+        if (*ref_index >= lane_blocks) {
             *ref_index -= lane_blocks;
         }
     }
 }
 
-struct ref
-{
+struct ref {
     uint32_t ref_lane;
     uint32_t ref_index;
 };
@@ -334,7 +317,9 @@ struct ref
  */
 template <uint32_t type>
 __global__ void argon2_precompute_kernel(
-    struct ref *refs, uint32_t passes, uint32_t lanes,
+    struct ref* refs,
+    uint32_t passes,
+    uint32_t lanes,
     uint32_t segment_blocks)
 {
     uint32_t block_id = blockIdx.y * blockDim.y + threadIdx.y;
@@ -345,14 +330,11 @@ __global__ void argon2_precompute_kernel(
     uint32_t segment = block_id / segment_addr_blocks;
 
     uint32_t slice, pass, pass_id, lane;
-    if (type == ARGON2_ID)
-    {
+    if (type == ARGON2_ID) {
         slice = segment % (ARGON2_SYNC_POINTS / 2);
         lane = segment / (ARGON2_SYNC_POINTS / 2);
         pass_id = pass = 0;
-    }
-    else
-    {
+    } else {
         slice = segment % ARGON2_SYNC_POINTS;
         pass_id = segment / ARGON2_SYNC_POINTS;
 
@@ -363,8 +345,7 @@ __global__ void argon2_precompute_kernel(
     struct block_th addr, tmp;
 
     uint32_t thread_input;
-    switch (thread)
-    {
+    switch (thread) {
     case 0:
         thread_input = pass;
         break;
@@ -395,18 +376,16 @@ __global__ void argon2_precompute_kernel(
 
     refs += segment * segment_blocks;
 
-    for (uint32_t i = 0; i < QWORDS_PER_THREAD; i++)
-    {
+    for (uint32_t i = 0; i < QWORDS_PER_THREAD; i++) {
         uint32_t pos = i * THREADS_PER_LANE + thread;
         uint32_t offset = block * ARGON2_QWORDS_IN_BLOCK + pos;
-        if (offset < segment_blocks)
-        {
+        if (offset < segment_blocks) {
             uint64_t v = block_th_get(&addr, i);
             uint32_t ref_index = u64_lo(v);
             uint32_t ref_lane = u64_hi(v);
 
             compute_ref_pos(lanes, segment_blocks, pass, lane, slice, offset,
-                            &ref_lane, &ref_index);
+                &ref_lane, &ref_index);
 
             refs[offset].ref_index = ref_index;
             refs[offset].ref_lane = ref_lane;
@@ -416,21 +395,23 @@ __global__ void argon2_precompute_kernel(
 
 template <uint32_t version>
 __device__ void argon2_core(
-    struct block_g *memory, struct block_g *mem_curr,
-    struct block_th *prev, struct block_th *tmp,
-    uint32_t lanes, uint32_t thread, uint32_t pass,
-    uint32_t ref_index, uint32_t ref_lane)
+    struct block_g* memory,
+    struct block_g* mem_curr,
+    struct block_th* prev,
+    struct block_th* tmp,
+    uint32_t lanes,
+    uint32_t thread,
+    uint32_t pass,
+    uint32_t ref_index,
+    uint32_t ref_lane)
 {
-    struct block_g *mem_ref = memory + ref_index * lanes + ref_lane;
+    struct block_g* mem_ref = memory + ref_index * lanes + ref_lane;
 
-    if (version != ARGON2_VERSION_10 && pass != 0)
-    {
+    if (version != ARGON2_VERSION_10 && pass != 0) {
         load_block(tmp, mem_curr, thread);
         load_block_xor(prev, mem_ref, thread);
         xor_block(tmp, prev);
-    }
-    else
-    {
+    } else {
         load_block_xor(prev, mem_ref, thread);
         move_block(tmp, prev);
     }
@@ -444,38 +425,47 @@ __device__ void argon2_core(
 
 template <uint32_t type, uint32_t version>
 __device__ void argon2_step_precompute(
-    struct block_g *memory, struct block_g *mem_curr,
-    struct block_th *prev, struct block_th *tmp, const struct ref **refs,
-    uint32_t lanes, uint32_t segment_blocks, uint32_t thread,
-    uint32_t lane, uint32_t pass, uint32_t slice, uint32_t offset)
+    struct block_g* memory,
+    struct block_g* mem_curr,
+    struct block_th* prev,
+    struct block_th* tmp,
+    const struct ref** refs,
+    uint32_t lanes,
+    uint32_t segment_blocks,
+    uint32_t thread,
+    uint32_t lane,
+    uint32_t pass,
+    uint32_t slice,
+    uint32_t offset)
 {
     uint32_t ref_index, ref_lane;
     if (type == ARGON2_I || (type == ARGON2_ID && pass == 0 &&
-                             slice < ARGON2_SYNC_POINTS / 2))
-    {
+                                slice < ARGON2_SYNC_POINTS / 2)) {
         ref_index = (*refs)->ref_index;
         ref_lane = (*refs)->ref_lane;
         (*refs)++;
-    }
-    else
-    {
+    } else {
         uint64_t v = u64_shuffle(prev->a, 0);
         ref_index = u64_lo(v);
         ref_lane = u64_hi(v);
 
         compute_ref_pos(lanes, segment_blocks, pass, lane, slice, offset,
-                        &ref_lane, &ref_index);
+            &ref_lane, &ref_index);
     }
 
     argon2_core<version>(memory, mem_curr, prev, tmp, lanes, thread, pass,
-                         ref_index, ref_lane);
+        ref_index, ref_lane);
 }
 
 template <uint32_t type, uint32_t version>
 __global__ void argon2_kernel_segment_precompute(
-    struct block_g *memory, const struct ref *refs,
-    uint32_t passes, uint32_t lanes, uint32_t segment_blocks,
-    uint32_t pass, uint32_t slice)
+    struct block_g* memory,
+    const struct ref* refs,
+    uint32_t passes,
+    uint32_t lanes,
+    uint32_t segment_blocks,
+    uint32_t pass,
+    uint32_t slice)
 {
     uint32_t job_id = blockIdx.z * blockDim.z + threadIdx.z;
     uint32_t lane = blockIdx.y * blockDim.y + threadIdx.y;
@@ -488,48 +478,37 @@ __global__ void argon2_kernel_segment_precompute(
 
     struct block_th prev, tmp;
 
-    struct block_g *mem_segment =
+    struct block_g* mem_segment =
         memory + slice * segment_blocks * lanes + lane;
     struct block_g *mem_prev, *mem_curr;
     uint32_t start_offset = 0;
-    if (pass == 0)
-    {
-        if (slice == 0)
-        {
+    if (pass == 0) {
+        if (slice == 0) {
             mem_prev = mem_segment + 1 * lanes;
             mem_curr = mem_segment + 2 * lanes;
             start_offset = 2;
-        }
-        else
-        {
+        } else {
             mem_prev = mem_segment - lanes;
             mem_curr = mem_segment;
         }
-    }
-    else
-    {
+    } else {
         mem_prev = mem_segment + (slice == 0 ? lane_blocks * lanes : 0) - lanes;
         mem_curr = mem_segment;
     }
 
     load_block(&prev, mem_prev, thread);
 
-    if (type == ARGON2_ID)
-    {
-        if (pass == 0 && slice < ARGON2_SYNC_POINTS / 2)
-        {
+    if (type == ARGON2_ID) {
+        if (pass == 0 && slice < ARGON2_SYNC_POINTS / 2) {
             refs += lane * (lane_blocks / 2) + slice * segment_blocks;
             refs += start_offset;
         }
-    }
-    else
-    {
+    } else {
         refs += (lane * passes + pass) * lane_blocks + slice * segment_blocks;
         refs += start_offset;
     }
 
-    for (uint32_t offset = start_offset; offset < segment_blocks; ++offset)
-    {
+    for (uint32_t offset = start_offset; offset < segment_blocks; ++offset) {
         argon2_step_precompute<type, version>(
             memory, mem_curr, &prev, &tmp, &refs, lanes, segment_blocks,
             thread, lane, pass, slice, offset);
@@ -540,8 +519,11 @@ __global__ void argon2_kernel_segment_precompute(
 
 template <uint32_t type, uint32_t version>
 __global__ void argon2_kernel_oneshot_precompute(
-    struct block_g *memory, const struct ref *refs, uint32_t passes,
-    uint32_t lanes, uint32_t segment_blocks)
+    struct block_g* memory,
+    const struct ref* refs,
+    uint32_t passes,
+    uint32_t lanes,
+    uint32_t segment_blocks)
 {
     uint32_t job_id = blockIdx.z * blockDim.z + threadIdx.z;
     uint32_t lane = threadIdx.y;
@@ -554,30 +536,23 @@ __global__ void argon2_kernel_oneshot_precompute(
 
     struct block_th prev, tmp;
 
-    struct block_g *mem_lane = memory + lane;
-    struct block_g *mem_prev = mem_lane + 1 * lanes;
-    struct block_g *mem_curr = mem_lane + 2 * lanes;
+    struct block_g* mem_lane = memory + lane;
+    struct block_g* mem_prev = mem_lane + 1 * lanes;
+    struct block_g* mem_curr = mem_lane + 2 * lanes;
 
     load_block(&prev, mem_prev, thread);
 
-    if (type == ARGON2_ID)
-    {
+    if (type == ARGON2_ID) {
         refs += lane * (lane_blocks / 2) + 2;
-    }
-    else
-    {
+    } else {
         refs += lane * passes * lane_blocks + 2;
     }
 
     uint32_t skip = 2;
-    for (uint32_t pass = 0; pass < passes; ++pass)
-    {
-        for (uint32_t slice = 0; slice < ARGON2_SYNC_POINTS; ++slice)
-        {
-            for (uint32_t offset = 0; offset < segment_blocks; ++offset)
-            {
-                if (skip > 0)
-                {
+    for (uint32_t pass = 0; pass < passes; ++pass) {
+        for (uint32_t slice = 0; slice < ARGON2_SYNC_POINTS; ++slice) {
+            for (uint32_t offset = 0; offset < segment_blocks; ++offset) {
+                if (skip > 0) {
                     --skip;
                     continue;
                 }
@@ -598,22 +573,27 @@ __global__ void argon2_kernel_oneshot_precompute(
 
 template <uint32_t type, uint32_t version>
 __device__ void argon2_step(
-    struct block_g *memory, struct block_g *mem_curr,
-    struct block_th *prev, struct block_th *tmp, struct block_th *addr,
-    uint32_t lanes, uint32_t segment_blocks, uint32_t thread,
-    uint32_t *thread_input, uint32_t lane, uint32_t pass, uint32_t slice,
+    struct block_g* memory,
+    struct block_g* mem_curr,
+    struct block_th* prev,
+    struct block_th* tmp,
+    struct block_th* addr,
+    uint32_t lanes,
+    uint32_t segment_blocks,
+    uint32_t thread,
+    uint32_t* thread_input,
+    uint32_t lane,
+    uint32_t pass,
+    uint32_t slice,
     uint32_t offset)
 {
     uint32_t ref_index, ref_lane;
 
     if (type == ARGON2_I || (type == ARGON2_ID && pass == 0 &&
-                             slice < ARGON2_SYNC_POINTS / 2))
-    {
+                                slice < ARGON2_SYNC_POINTS / 2)) {
         uint32_t addr_index = offset % ARGON2_QWORDS_IN_BLOCK;
-        if (addr_index == 0)
-        {
-            if (thread == 6)
-            {
+        if (addr_index == 0) {
+            if (thread == 6) {
                 ++*thread_input;
             }
             next_addresses(addr, tmp, *thread_input, thread);
@@ -626,25 +606,27 @@ __device__ void argon2_step(
         v = u64_shuffle(v, thr);
         ref_index = u64_lo(v);
         ref_lane = u64_hi(v);
-    }
-    else
-    {
+    } else {
         uint64_t v = u64_shuffle(prev->a, 0);
         ref_index = u64_lo(v);
         ref_lane = u64_hi(v);
     }
 
     compute_ref_pos(lanes, segment_blocks, pass, lane, slice, offset,
-                    &ref_lane, &ref_index);
+        &ref_lane, &ref_index);
 
     argon2_core<version>(memory, mem_curr, prev, tmp, lanes, thread, pass,
-                         ref_index, ref_lane);
+        ref_index, ref_lane);
 }
 
 template <uint32_t type, uint32_t version>
 __global__ void argon2_kernel_segment(
-    struct block_g *memory, uint32_t passes, uint32_t lanes,
-    uint32_t segment_blocks, uint32_t pass, uint32_t slice)
+    struct block_g* memory,
+    uint32_t passes,
+    uint32_t lanes,
+    uint32_t segment_blocks,
+    uint32_t pass,
+    uint32_t slice)
 {
     uint32_t job_id = blockIdx.z * blockDim.z + threadIdx.z;
     uint32_t lane = blockIdx.y * blockDim.y + threadIdx.y;
@@ -658,10 +640,8 @@ __global__ void argon2_kernel_segment(
     struct block_th prev, addr, tmp;
     uint32_t thread_input;
 
-    if (type == ARGON2_I || type == ARGON2_ID)
-    {
-        switch (thread)
-        {
+    if (type == ARGON2_I || type == ARGON2_ID) {
+        switch (thread) {
         case 0:
             thread_input = pass;
             break;
@@ -685,44 +665,35 @@ __global__ void argon2_kernel_segment(
             break;
         }
 
-        if (pass == 0 && slice == 0 && segment_blocks > 2)
-        {
-            if (thread == 6)
-            {
+        if (pass == 0 && slice == 0 && segment_blocks > 2) {
+            if (thread == 6) {
                 ++thread_input;
             }
             next_addresses(&addr, &tmp, thread_input, thread);
         }
     }
 
-    struct block_g *mem_segment =
+    struct block_g* mem_segment =
         memory + slice * segment_blocks * lanes + lane;
     struct block_g *mem_prev, *mem_curr;
     uint32_t start_offset = 0;
-    if (pass == 0)
-    {
-        if (slice == 0)
-        {
+    if (pass == 0) {
+        if (slice == 0) {
             mem_prev = mem_segment + 1 * lanes;
             mem_curr = mem_segment + 2 * lanes;
             start_offset = 2;
-        }
-        else
-        {
+        } else {
             mem_prev = mem_segment - lanes;
             mem_curr = mem_segment;
         }
-    }
-    else
-    {
+    } else {
         mem_prev = mem_segment + (slice == 0 ? lane_blocks * lanes : 0) - lanes;
         mem_curr = mem_segment;
     }
 
     load_block(&prev, mem_prev, thread);
 
-    for (uint32_t offset = start_offset; offset < segment_blocks; ++offset)
-    {
+    for (uint32_t offset = start_offset; offset < segment_blocks; ++offset) {
         argon2_step<type, version>(
             memory, mem_curr, &prev, &tmp, &addr, lanes, segment_blocks,
             thread, &thread_input, lane, pass, slice, offset);
@@ -733,7 +704,9 @@ __global__ void argon2_kernel_segment(
 
 template <uint32_t type, uint32_t version>
 __global__ void argon2_kernel_oneshot(
-    struct block_g *memory, uint32_t passes, uint32_t lanes,
+    struct block_g* memory,
+    uint32_t passes,
+    uint32_t lanes,
     uint32_t segment_blocks)
 {
     uint32_t job_id = blockIdx.z * blockDim.z + threadIdx.z;
@@ -748,10 +721,8 @@ __global__ void argon2_kernel_oneshot(
     struct block_th prev, addr, tmp;
     uint32_t thread_input;
 
-    if (type == ARGON2_I || type == ARGON2_ID)
-    {
-        switch (thread)
-        {
+    if (type == ARGON2_I || type == ARGON2_ID) {
+        switch (thread) {
         case 1:
             thread_input = lane;
             break;
@@ -769,31 +740,25 @@ __global__ void argon2_kernel_oneshot(
             break;
         }
 
-        if (segment_blocks > 2)
-        {
-            if (thread == 6)
-            {
+        if (segment_blocks > 2) {
+            if (thread == 6) {
                 ++thread_input;
             }
             next_addresses(&addr, &tmp, thread_input, thread);
         }
     }
 
-    struct block_g *mem_lane = memory + lane;
-    struct block_g *mem_prev = mem_lane + 1 * lanes;
-    struct block_g *mem_curr = mem_lane + 2 * lanes;
+    struct block_g* mem_lane = memory + lane;
+    struct block_g* mem_prev = mem_lane + 1 * lanes;
+    struct block_g* mem_curr = mem_lane + 2 * lanes;
 
     load_block(&prev, mem_prev, thread);
 
     uint32_t skip = 2;
-    for (uint32_t pass = 0; pass < passes; ++pass)
-    {
-        for (uint32_t slice = 0; slice < ARGON2_SYNC_POINTS; ++slice)
-        {
-            for (uint32_t offset = 0; offset < segment_blocks; ++offset)
-            {
-                if (skip > 0)
-                {
+    for (uint32_t pass = 0; pass < passes; ++pass) {
+        for (uint32_t slice = 0; slice < ARGON2_SYNC_POINTS; ++slice) {
+            for (uint32_t offset = 0; offset < segment_blocks; ++offset) {
+                if (skip > 0) {
                     --skip;
                     continue;
                 }
@@ -808,26 +773,20 @@ __global__ void argon2_kernel_oneshot(
 
             __syncthreads();
 
-            if (type == ARGON2_I || type == ARGON2_ID)
-            {
-                if (thread == 2)
-                {
+            if (type == ARGON2_I || type == ARGON2_ID) {
+                if (thread == 2) {
                     ++thread_input;
                 }
-                if (thread == 6)
-                {
+                if (thread == 6) {
                     thread_input = 0;
                 }
             }
         }
-        if (type == ARGON2_I)
-        {
-            if (thread == 0)
-            {
+        if (type == ARGON2_I) {
+            if (thread == 0) {
                 ++thread_input;
             }
-            if (thread == 2)
-            {
+            if (thread == 2) {
                 thread_input = 0;
             }
         }
@@ -840,15 +799,12 @@ static void setCudaDevice(int deviceIndex)
 {
     int currentIndex = -1;
     CudaException::check(cudaGetDevice(&currentIndex));
-    if (currentIndex != deviceIndex)
-    {
+    if (currentIndex != deviceIndex) {
         CudaException::check(cudaSetDevice(deviceIndex));
     }
 }
 
-KernelRunner::KernelRunner(uint32_t type, uint32_t version, uint32_t passes,
-                           uint32_t lanes, uint32_t segmentBlocks,
-                           uint32_t batchSize, bool bySegment, bool precompute, int deviceIndex)
+KernelRunner::KernelRunner(uint32_t type, uint32_t version, uint32_t passes, uint32_t lanes, uint32_t segmentBlocks, uint32_t batchSize, bool bySegment, bool precompute, int deviceIndex)
     : type(type), version(version), passes(passes), lanes(lanes),
       segmentBlocks(segmentBlocks), batchSize(batchSize), bySegment(bySegment), deviceIndex(deviceIndex),
       precompute(precompute), stream(nullptr), memory(nullptr),
@@ -871,12 +827,9 @@ KernelRunner::KernelRunner(uint32_t type, uint32_t version, uint32_t passes,
 
     CudaException::check(cudaStreamCreate(&stream));
 
-    if ((type == ARGON2_I || type == ARGON2_ID) && precompute)
-    {
+    if ((type == ARGON2_I || type == ARGON2_ID) && precompute) {
         uint32_t segments =
-            type == ARGON2_ID
-                ? lanes * (ARGON2_SYNC_POINTS / 2)
-                : passes * lanes * ARGON2_SYNC_POINTS;
+            type == ARGON2_ID ? lanes * (ARGON2_SYNC_POINTS / 2) : passes * lanes * ARGON2_SYNC_POINTS;
 
         size_t refsSize = segments * segmentBlocks * sizeof(struct ref);
 
@@ -894,183 +847,146 @@ KernelRunner::KernelRunner(uint32_t type, uint32_t version, uint32_t passes,
 
 void KernelRunner::precomputeRefs()
 {
-    struct ref *refs = (struct ref *)this->refs;
+    struct ref* refs = (struct ref*)this->refs;
 
     uint32_t segmentAddrBlocks = (segmentBlocks + ARGON2_QWORDS_IN_BLOCK - 1) / ARGON2_QWORDS_IN_BLOCK;
     uint32_t segments =
-        type == ARGON2_ID
-            ? lanes * (ARGON2_SYNC_POINTS / 2)
-            : passes * lanes * ARGON2_SYNC_POINTS;
+        type == ARGON2_ID ? lanes * (ARGON2_SYNC_POINTS / 2) : passes * lanes * ARGON2_SYNC_POINTS;
 
     dim3 blocks = dim3(1, segments * segmentAddrBlocks);
     dim3 threads = dim3(THREADS_PER_LANE);
 
-    if (type == ARGON2_I)
-    {
+    if (type == ARGON2_I) {
         argon2_precompute_kernel<ARGON2_I>
-            <<<blocks, threads, 0, stream>>>(
+            <<<blocks, threads, 0, stream> > >(
                 refs, passes, lanes, segmentBlocks);
-    }
-    else
-    {
+    } else {
         argon2_precompute_kernel<ARGON2_ID>
-            <<<blocks, threads, 0, stream>>>(
+            <<<blocks, threads, 0, stream> > >(
                 refs, passes, lanes, segmentBlocks);
     }
 }
 
 KernelRunner::~KernelRunner()
 {
-    if (start != nullptr)
-    {
+    if (start != nullptr) {
         cudaEventDestroy(start);
     }
-    if (end != nullptr)
-    {
+    if (end != nullptr) {
         cudaEventDestroy(end);
     }
-    if (stream != nullptr)
-    {
+    if (stream != nullptr) {
         cudaStreamDestroy(stream);
     }
-    if (memory != nullptr)
-    {
+    if (memory != nullptr) {
         cudaFree(memory);
     }
-    if (refs != nullptr)
-    {
+    if (refs != nullptr) {
         cudaFree(refs);
     }
 }
 
-void KernelRunner::writeInputMemory(uint32_t jobId, const void *buffer)
+void KernelRunner::writeInputMemory(uint32_t jobId, const void* buffer)
 {
     std::size_t memorySize = static_cast<size_t>(lanes) * segmentBlocks * ARGON2_SYNC_POINTS * ARGON2_BLOCK_SIZE;
     std::size_t size = static_cast<size_t>(lanes) * 2 * ARGON2_BLOCK_SIZE;
     std::size_t offset = memorySize * jobId;
-    auto mem = static_cast<uint8_t *>(memory) + offset;
+    auto mem = static_cast<uint8_t*>(memory) + offset;
     CudaException::check(cudaMemcpyAsync(mem, buffer, size,
-                                         cudaMemcpyHostToDevice, stream));
+        cudaMemcpyHostToDevice, stream));
     CudaException::check(cudaStreamSynchronize(stream));
 }
 
-void KernelRunner::readOutputMemory(uint32_t jobId, void *buffer)
+void KernelRunner::readOutputMemory(uint32_t jobId, void* buffer)
 {
     std::size_t memorySize = static_cast<size_t>(lanes) * segmentBlocks * ARGON2_SYNC_POINTS * ARGON2_BLOCK_SIZE;
     std::size_t size = static_cast<size_t>(lanes) * ARGON2_BLOCK_SIZE;
     std::size_t offset = memorySize * (jobId + 1) - size;
-    auto mem = static_cast<uint8_t *>(memory) + offset;
+    auto mem = static_cast<uint8_t*>(memory) + offset;
     CudaException::check(cudaMemcpyAsync(buffer, mem, size,
-                                         cudaMemcpyDeviceToHost, stream));
+        cudaMemcpyDeviceToHost, stream));
     CudaException::check(cudaStreamSynchronize(stream));
 }
 
 void KernelRunner::runKernelSegment(uint32_t lanesPerBlock,
-                                    uint32_t jobsPerBlock,
-                                    uint32_t pass, uint32_t slice)
+    uint32_t jobsPerBlock,
+    uint32_t pass,
+    uint32_t slice)
 {
-    if (lanesPerBlock > lanes || lanes % lanesPerBlock != 0)
-    {
+    if (lanesPerBlock > lanes || lanes % lanesPerBlock != 0) {
         throw std::logic_error("Invalid lanesPerBlock!");
     }
 
-    if (jobsPerBlock > batchSize || batchSize % jobsPerBlock != 0)
-    {
+    if (jobsPerBlock > batchSize || batchSize % jobsPerBlock != 0) {
         throw std::logic_error("Invalid jobsPerBlock!");
     }
 
-    struct block_g *memory_blocks = (struct block_g *)memory;
+    struct block_g* memory_blocks = (struct block_g*)memory;
     dim3 blocks = dim3(1, lanes / lanesPerBlock, batchSize / jobsPerBlock);
     dim3 threads = dim3(THREADS_PER_LANE, lanesPerBlock, jobsPerBlock);
-    if (type == ARGON2_I)
-    {
-        if (precompute)
-        {
-            struct ref *refs = (struct ref *)this->refs;
-            if (version == ARGON2_VERSION_10)
-            {
+    if (type == ARGON2_I) {
+        if (precompute) {
+            struct ref* refs = (struct ref*)this->refs;
+            if (version == ARGON2_VERSION_10) {
                 argon2_kernel_segment_precompute<ARGON2_I, ARGON2_VERSION_10>
-                    <<<blocks, threads, 0, stream>>>(
+                    <<<blocks, threads, 0, stream> > >(
                         memory_blocks, refs, passes, lanes, segmentBlocks,
                         pass, slice);
-            }
-            else
-            {
+            } else {
                 argon2_kernel_segment_precompute<ARGON2_I, ARGON2_VERSION_13>
-                    <<<blocks, threads, 0, stream>>>(
+                    <<<blocks, threads, 0, stream> > >(
                         memory_blocks, refs, passes, lanes, segmentBlocks,
                         pass, slice);
             }
-        }
-        else
-        {
-            if (version == ARGON2_VERSION_10)
-            {
+        } else {
+            if (version == ARGON2_VERSION_10) {
                 argon2_kernel_segment<ARGON2_I, ARGON2_VERSION_10>
-                    <<<blocks, threads, 0, stream>>>(
+                    <<<blocks, threads, 0, stream> > >(
                         memory_blocks, passes, lanes, segmentBlocks,
                         pass, slice);
-            }
-            else
-            {
+            } else {
                 argon2_kernel_segment<ARGON2_I, ARGON2_VERSION_13>
-                    <<<blocks, threads, 0, stream>>>(
+                    <<<blocks, threads, 0, stream> > >(
                         memory_blocks, passes, lanes, segmentBlocks,
                         pass, slice);
             }
         }
-    }
-    else if (type == ARGON2_ID)
-    {
-        if (precompute)
-        {
-            struct ref *refs = (struct ref *)this->refs;
-            if (version == ARGON2_VERSION_10)
-            {
+    } else if (type == ARGON2_ID) {
+        if (precompute) {
+            struct ref* refs = (struct ref*)this->refs;
+            if (version == ARGON2_VERSION_10) {
                 argon2_kernel_segment_precompute<ARGON2_ID, ARGON2_VERSION_10>
-                    <<<blocks, threads, 0, stream>>>(
+                    <<<blocks, threads, 0, stream> > >(
                         memory_blocks, refs, passes, lanes, segmentBlocks,
                         pass, slice);
-            }
-            else
-            {
+            } else {
                 argon2_kernel_segment_precompute<ARGON2_ID, ARGON2_VERSION_13>
-                    <<<blocks, threads, 0, stream>>>(
+                    <<<blocks, threads, 0, stream> > >(
                         memory_blocks, refs, passes, lanes, segmentBlocks,
                         pass, slice);
             }
-        }
-        else
-        {
-            if (version == ARGON2_VERSION_10)
-            {
+        } else {
+            if (version == ARGON2_VERSION_10) {
                 argon2_kernel_segment<ARGON2_ID, ARGON2_VERSION_10>
-                    <<<blocks, threads, 0, stream>>>(
+                    <<<blocks, threads, 0, stream> > >(
                         memory_blocks, passes, lanes, segmentBlocks,
                         pass, slice);
-            }
-            else
-            {
+            } else {
                 argon2_kernel_segment<ARGON2_ID, ARGON2_VERSION_13>
-                    <<<blocks, threads, 0, stream>>>(
+                    <<<blocks, threads, 0, stream> > >(
                         memory_blocks, passes, lanes, segmentBlocks,
                         pass, slice);
             }
         }
-    }
-    else
-    {
-        if (version == ARGON2_VERSION_10)
-        {
+    } else {
+        if (version == ARGON2_VERSION_10) {
             argon2_kernel_segment<ARGON2_D, ARGON2_VERSION_10>
-                <<<blocks, threads, 0, stream>>>(
+                <<<blocks, threads, 0, stream> > >(
                     memory_blocks, passes, lanes, segmentBlocks,
                     pass, slice);
-        }
-        else
-        {
+        } else {
             argon2_kernel_segment<ARGON2_D, ARGON2_VERSION_13>
-                <<<blocks, threads, 0, stream>>>(
+                <<<blocks, threads, 0, stream> > >(
                     memory_blocks, passes, lanes, segmentBlocks,
                     pass, slice);
         }
@@ -1078,101 +994,73 @@ void KernelRunner::runKernelSegment(uint32_t lanesPerBlock,
 }
 
 void KernelRunner::runKernelOneshot(uint32_t lanesPerBlock,
-                                    uint32_t jobsPerBlock)
+    uint32_t jobsPerBlock)
 {
-    if (lanesPerBlock != lanes)
-    {
+    if (lanesPerBlock != lanes) {
         throw std::logic_error("Invalid lanesPerBlock!");
     }
 
-    if (jobsPerBlock > batchSize || batchSize % jobsPerBlock != 0)
-    {
+    if (jobsPerBlock > batchSize || batchSize % jobsPerBlock != 0) {
         throw std::logic_error("Invalid jobsPerBlock!");
     }
 
-    struct block_g *memory_blocks = (struct block_g *)memory;
+    struct block_g* memory_blocks = (struct block_g*)memory;
     dim3 blocks = dim3(1, 1, batchSize / jobsPerBlock);
     dim3 threads = dim3(THREADS_PER_LANE, lanes, jobsPerBlock);
-    if (type == ARGON2_I)
-    {
-        if (precompute)
-        {
-            struct ref *refs = (struct ref *)this->refs;
-            if (version == ARGON2_VERSION_10)
-            {
+    if (type == ARGON2_I) {
+        if (precompute) {
+            struct ref* refs = (struct ref*)this->refs;
+            if (version == ARGON2_VERSION_10) {
                 argon2_kernel_oneshot_precompute<ARGON2_I, ARGON2_VERSION_10>
-                    <<<blocks, threads, 0, stream>>>(
+                    <<<blocks, threads, 0, stream> > >(
                         memory_blocks, refs, passes, lanes, segmentBlocks);
-            }
-            else
-            {
+            } else {
                 argon2_kernel_oneshot_precompute<ARGON2_I, ARGON2_VERSION_13>
-                    <<<blocks, threads, 0, stream>>>(
+                    <<<blocks, threads, 0, stream> > >(
                         memory_blocks, refs, passes, lanes, segmentBlocks);
             }
-        }
-        else
-        {
-            if (version == ARGON2_VERSION_10)
-            {
+        } else {
+            if (version == ARGON2_VERSION_10) {
                 argon2_kernel_oneshot<ARGON2_I, ARGON2_VERSION_10>
-                    <<<blocks, threads, 0, stream>>>(
+                    <<<blocks, threads, 0, stream> > >(
                         memory_blocks, passes, lanes, segmentBlocks);
-            }
-            else
-            {
+            } else {
                 argon2_kernel_oneshot<ARGON2_I, ARGON2_VERSION_13>
-                    <<<blocks, threads, 0, stream>>>(
+                    <<<blocks, threads, 0, stream> > >(
                         memory_blocks, passes, lanes, segmentBlocks);
             }
         }
-    }
-    else if (type == ARGON2_ID)
-    {
-        if (precompute)
-        {
-            struct ref *refs = (struct ref *)this->refs;
-            if (version == ARGON2_VERSION_10)
-            {
+    } else if (type == ARGON2_ID) {
+        if (precompute) {
+            struct ref* refs = (struct ref*)this->refs;
+            if (version == ARGON2_VERSION_10) {
                 argon2_kernel_oneshot_precompute<ARGON2_ID, ARGON2_VERSION_10>
-                    <<<blocks, threads, 0, stream>>>(
+                    <<<blocks, threads, 0, stream> > >(
                         memory_blocks, refs, passes, lanes, segmentBlocks);
-            }
-            else
-            {
+            } else {
                 argon2_kernel_oneshot_precompute<ARGON2_ID, ARGON2_VERSION_13>
-                    <<<blocks, threads, 0, stream>>>(
+                    <<<blocks, threads, 0, stream> > >(
                         memory_blocks, refs, passes, lanes, segmentBlocks);
             }
-        }
-        else
-        {
-            if (version == ARGON2_VERSION_10)
-            {
+        } else {
+            if (version == ARGON2_VERSION_10) {
                 argon2_kernel_oneshot<ARGON2_ID, ARGON2_VERSION_10>
-                    <<<blocks, threads, 0, stream>>>(
+                    <<<blocks, threads, 0, stream> > >(
                         memory_blocks, passes, lanes, segmentBlocks);
-            }
-            else
-            {
+            } else {
                 argon2_kernel_oneshot<ARGON2_ID, ARGON2_VERSION_13>
-                    <<<blocks, threads, 0, stream>>>(
+                    <<<blocks, threads, 0, stream> > >(
                         memory_blocks, passes, lanes, segmentBlocks);
             }
         }
-    }
-    else
-    {
-        if (version == ARGON2_VERSION_10)
-        {
+    } else {
+        if (version == ARGON2_VERSION_10) {
             argon2_kernel_oneshot<ARGON2_D, ARGON2_VERSION_10>
-                <<<blocks, threads, 0, stream>>>(
+                <<<blocks, threads, 0, stream> > >(
                     memory_blocks, passes, lanes, segmentBlocks);
-        }
-        else
-        {
+        } else {
             argon2_kernel_oneshot<ARGON2_D, ARGON2_VERSION_13>
-                <<<blocks, threads, 0, stream>>>(
+                <<<blocks, threads, 0, stream> > >(
                     memory_blocks, passes, lanes, segmentBlocks);
         }
     }
@@ -1183,18 +1071,13 @@ void KernelRunner::run(uint32_t lanesPerBlock, uint32_t jobsPerBlock)
     setCudaDevice(deviceIndex);
     CudaException::check(cudaEventRecord(start, stream));
 
-    if (bySegment)
-    {
-        for (uint32_t pass = 0; pass < passes; pass++)
-        {
-            for (uint32_t slice = 0; slice < ARGON2_SYNC_POINTS; slice++)
-            {
+    if (bySegment) {
+        for (uint32_t pass = 0; pass < passes; pass++) {
+            for (uint32_t slice = 0; slice < ARGON2_SYNC_POINTS; slice++) {
                 runKernelSegment(lanesPerBlock, jobsPerBlock, pass, slice);
             }
         }
-    }
-    else
-    {
+    } else {
         runKernelOneshot(lanesPerBlock, jobsPerBlock);
     }
 

@@ -15,21 +15,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "crypto/argon2gpu/argon2-opencl/kernel-loader.h"
+#include "crypto/argon2gpu/opencl/kernel-loader.h"
 
 #include <fstream>
-#include <sstream>
 #include <iostream>
+#include <sstream>
 
 namespace argon2gpu
 {
 namespace opencl
 {
-
 cl::Program KernelLoader::loadArgon2Program(
-    const cl::Context &context,
-    const std::string &sourceDirectory,
-    Type type, Version version, bool debug)
+    const cl::Context& context,
+    const std::string& sourceDirectory,
+    Type type,
+    Version version,
+    bool debug)
 {
     std::string sourcePath = sourceDirectory + "/kernel.cl";
     std::string sourceText;
@@ -41,8 +42,7 @@ cl::Program KernelLoader::loadArgon2Program(
             std::istreambuf_iterator<char>()};
     }
 
-    if (debug)
-    {
+    if (debug) {
         buildOpts << "-g -s \"" << sourcePath << "\""
                   << " ";
     }
@@ -50,16 +50,12 @@ cl::Program KernelLoader::loadArgon2Program(
     buildOpts << "-DARGON2_VERSION=" << version << " ";
 
     cl::Program prog(context, sourceText);
-    try
-    {
+    try {
         std::string opts = buildOpts.str();
         prog.build(opts.c_str());
-    }
-    catch (const cl::Error &err)
-    {
+    } catch (const cl::Error& err) {
         std::cerr << "ERROR: Failed to build program:" << std::endl;
-        for (cl::Device &device : context.getInfo<CL_CONTEXT_DEVICES>())
-        {
+        for (cl::Device& device : context.getInfo<CL_CONTEXT_DEVICES>()) {
             std::cerr << "  Build log from device '" << device.getInfo<CL_DEVICE_NAME>() << "':" << std::endl;
             std::cerr << prog.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device);
         }

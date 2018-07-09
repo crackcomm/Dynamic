@@ -18,19 +18,18 @@
 #ifndef ARGON2_OPENCL_KERNELRUNNER_H
 #define ARGON2_OPENCL_KERNELRUNNER_H
 
-#include "crypto/argon2gpu/argon2-opencl/program-context.h"
-#include "crypto/argon2gpu/argon2-gpu/common.h"
+#include "crypto/argon2gpu/mon.h"
+#include "crypto/argon2gpu/program-context.h"
 
 namespace argon2gpu
 {
 namespace opencl
 {
-
 class KernelRunner
 {
-  private:
-    const ProgramContext *programContext;
-    const Argon2Params *params;
+private:
+    const ProgramContext* programContext;
+    const Argon2Params* params;
 
     std::uint32_t batchSize;
     bool bySegment;
@@ -45,7 +44,7 @@ class KernelRunner
 
     void precomputeRefs();
 
-  public:
+public:
     std::uint32_t getMinLanesPerBlock() const
     {
         return bySegment ? 1 : params->getLanes();
@@ -57,15 +56,18 @@ class KernelRunner
 
     std::uint32_t getBatchSize() const { return batchSize; }
 
-    KernelRunner(const ProgramContext *programContext,
-                 const Argon2Params *params, const Device *device,
-                 std::uint32_t batchSize, bool bySegment, bool precompute);
+    KernelRunner(const ProgramContext* programContext,
+        const Argon2Params* params,
+        const Device* device,
+        std::uint32_t batchSize,
+        bool bySegment,
+        bool precompute);
 
-    void *mapInputMemory(std::uint32_t jobId);
-    void unmapInputMemory(void *memory);
+    void* mapInputMemory(std::uint32_t jobId);
+    void unmapInputMemory(void* memory);
 
-    void *mapOutputMemory(std::uint32_t jobId);
-    void unmapOutputMemory(void *memory);
+    void* mapOutputMemory(std::uint32_t jobId);
+    void unmapOutputMemory(void* memory);
 
     void run(std::uint32_t lanesPerBlock, std::uint32_t jobsPerBlock);
     float finish();

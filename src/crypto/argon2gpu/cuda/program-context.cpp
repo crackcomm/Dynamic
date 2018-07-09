@@ -15,25 +15,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "crypto/argon2gpu/argon2-cuda/global-context.h"
-#include "crypto/argon2gpu/argon2-cuda/cuda-exception.h"
+#include "crypto/argon2gpu/ogram-context.h"
+#include "crypto/argon2gpu/rnels.h"
+
+#define THREADS_PER_LANE 32
 
 namespace argon2gpu
 {
 namespace cuda
 {
-
-GlobalContext::GlobalContext()
-    : devices()
+ProgramContext::ProgramContext(
+    const GlobalContext* globalContext,
+    const std::vector<Device>& devices,
+    Type type,
+    Version version)
+    : globalContext(globalContext), type(type), version(version)
 {
-    int count;
-    CudaException::check(cudaGetDeviceCount(&count));
-
-    devices.reserve(count);
-    for (int i = 0; i < count; i++)
-    {
-        devices.emplace_back(i);
-    }
 }
 
 } // namespace cuda

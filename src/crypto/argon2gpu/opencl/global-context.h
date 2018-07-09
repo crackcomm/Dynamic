@@ -18,7 +18,7 @@
 #ifndef ARGON2_OPENCL_GLOBALCONTEXT_H
 #define ARGON2_OPENCL_GLOBALCONTEXT_H
 
-#include "crypto/argon2gpu/argon2-opencl/device.h"
+#include "crypto/argon2gpu/opencl/device.h"
 
 #include <string>
 #include <vector>
@@ -27,14 +27,13 @@ namespace argon2gpu
 {
 namespace opencl
 {
-
 class GlobalContext
 {
-  private:
+private:
     std::vector<Device> devices;
 
-  public:
-    const std::vector<Device> &getAllDevices() const { return devices; }
+public:
+    const std::vector<Device>& getAllDevices() const { return devices; }
 
     GlobalContext();
 };

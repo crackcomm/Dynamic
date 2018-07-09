@@ -18,40 +18,40 @@ endif
 crypto_argon2gpu_libdynamic_gpu_a_CPPFLAGS = $(DYNAMIC_INCLUDES)
 crypto_argon2gpu_libdynamic_gpu_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 crypto_argon2gpu_libdynamic_gpu_a_SOURCES = \
-  crypto/argon2gpu/argon2-gpu/blake2b.h \
-  crypto/argon2gpu/argon2-gpu/common.h \
-  crypto/argon2gpu/argon2-gpu/common.cpp \
-  crypto/argon2gpu/argon2-gpu/blake2b.cpp
+  crypto/argon2gpu/gpu/blake2b.h \
+  crypto/argon2gpu/gpu/common.h \
+  crypto/argon2gpu/gpu/common.cpp \
+  crypto/argon2gpu/gpu/blake2b.cpp
 
 if HAVE_CUDA
   crypto_argon2gpu_libdynamic_gpu_a_SOURCES += \
-    crypto/argon2gpu/argon2-cuda/cuda-exception.h \
-    crypto/argon2gpu/argon2-cuda/device.h \
-    crypto/argon2gpu/argon2-cuda/global-context.h \
-    crypto/argon2gpu/argon2-cuda/kernels.h \
-    crypto/argon2gpu/argon2-cuda/processing-unit.h \
-    crypto/argon2gpu/argon2-cuda/program-context.h \
-    crypto/argon2gpu/argon2-cuda/device.cpp \
-    crypto/argon2gpu/argon2-cuda/global-context.cpp \
-    crypto/argon2gpu/argon2-cuda/kernels.cu \
-    crypto/argon2gpu/argon2-cuda/processing-unit.cpp \
-    crypto/argon2gpu/argon2-cuda/program-context.cpp
+    crypto/argon2gpu/cuda/cuda-exception.h \
+    crypto/argon2gpu/cuda/device.h \
+    crypto/argon2gpu/cuda/global-context.h \
+    crypto/argon2gpu/cuda/kernels.h \
+    crypto/argon2gpu/cuda/processing-unit.h \
+    crypto/argon2gpu/cuda/program-context.h \
+    crypto/argon2gpu/cuda/device.cpp \
+    crypto/argon2gpu/cuda/global-context.cpp \
+    crypto/argon2gpu/cuda/kernels.cu \
+    crypto/argon2gpu/cuda/processing-unit.cpp \
+    crypto/argon2gpu/cuda/program-context.cpp
 else
   crypto_argon2gpu_libdynamic_gpu_a_SOURCES += \
-    crypto/argon2gpu/argon2-opencl/cl.hpp \
-    crypto/argon2gpu/argon2-opencl/device.h \
-    crypto/argon2gpu/argon2-opencl/global-context.h \
-    crypto/argon2gpu/argon2-opencl/kernel-loader.h \
-    crypto/argon2gpu/argon2-opencl/kernel-runner.h \
-    crypto/argon2gpu/argon2-opencl/opencl.h \
-    crypto/argon2gpu/argon2-opencl/processing-unit.h \
-    crypto/argon2gpu/argon2-opencl/program-context.h \
-    crypto/argon2gpu/argon2-opencl/device.cpp \
-    crypto/argon2gpu/argon2-opencl/global-context.cpp \
-    crypto/argon2gpu/argon2-opencl/kernel-loader.cpp \
-    crypto/argon2gpu/argon2-opencl/kernel-runner.cpp \
-    crypto/argon2gpu/argon2-opencl/processing-unit.cpp \
-    crypto/argon2gpu/argon2-opencl/program-context.cpp
+    crypto/argon2gpu/opencl/cl.hpp \
+    crypto/argon2gpu/opencl/device.h \
+    crypto/argon2gpu/opencl/global-context.h \
+    crypto/argon2gpu/opencl/kernel-loader.h \
+    crypto/argon2gpu/opencl/kernel-runner.h \
+    crypto/argon2gpu/opencl/opencl.h \
+    crypto/argon2gpu/opencl/processing-unit.h \
+    crypto/argon2gpu/opencl/program-context.h \
+    crypto/argon2gpu/opencl/device.cpp \
+    crypto/argon2gpu/opencl/global-context.cpp \
+    crypto/argon2gpu/opencl/kernel-loader.cpp \
+    crypto/argon2gpu/opencl/kernel-runner.cpp \
+    crypto/argon2gpu/opencl/processing-unit.cpp \
+    crypto/argon2gpu/opencl/program-context.cpp
 endif
 
 dynamicd_LDADD += $(LIBDYNAMIC_GPU_LDADD)

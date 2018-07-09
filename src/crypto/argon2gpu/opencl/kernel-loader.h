@@ -15,4 +15,29 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// Used when there is no CUDA available
+#ifndef ARGON2_OPENCL_KERNELLOADER_H
+#define ARGON2_OPENCL_KERNELLOADER_H
+
+#include "crypto/argon2gpu/mon.h"
+#include "crypto/argon2gpu/opencl.h"
+
+#include <string>
+
+namespace argon2gpu
+{
+namespace opencl
+{
+namespace KernelLoader
+{
+cl::Program loadArgon2Program(
+    const cl::Context& context,
+    const std::string& sourceDirectory,
+    Type type,
+    Version version,
+    bool debug = false);
+};
+
+} // namespace opencl
+} // namespace argon2gpu
+
+#endif // ARGON2_OPENCL_KERNELLOADER_H

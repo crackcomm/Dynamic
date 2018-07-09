@@ -15,30 +15,34 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "crypto/argon2gpu/argon2-opencl/program-context.h"
-#include "crypto/argon2gpu/argon2-opencl/kernel-loader.h"
+#include "crypto/argon2gpu/opencl/global-context.h"
+
+#include <iostream>
 
 namespace argon2gpu
 {
 namespace opencl
 {
-
-ProgramContext::ProgramContext(
-    const GlobalContext *globalContext,
-    const std::vector<Device> &devices,
-    Type type, Version version)
-    : globalContext(globalContext), devices(), type(type), version(version)
+GlobalContext::GlobalContext()
+    : devices()
 {
-    this->devices.reserve(devices.size());
-    for (auto &device : devices)
-    {
-        this->devices.push_back(device.getCLDevice());
-    }
-    context = cl::Context(this->devices);
+    std::clog << "globalcontextinit <" << std::endl;
+    std::vector<cl::Platform> platforms;
+    std::clog << "cl::Platform::get <" << std::endl;
+    cl::Platform::get(&platforms);
+    std::clog << "cl::Platform::get >" << std::endl;
 
-    program = KernelLoader::loadArgon2Program(
-        // FIXME path:
-        context, "./src/crypto/argon2gpu/argon2-opencl", type, version);
+    std::vector<cl::Device> clDevices;
+    for (cl::Platform platform : platforms) {
+        try {
+            platform.getDevices(CL_DEVICE_TYPE_ALL, &clDevices);
+            devices.insert(devices.end(), clDevices.begin(), clDevices.end());
+        } catch (const cl::Error& err) {
+            std::cerr << "WARNING: Unable to get devices for platform '"
+                      << platform.getInfo<CL_PLATFORM_NAME>()
+                      << "' - error " << err.err() << std::endl;
+        }
+    }
 }
 
 } // namespace opencl

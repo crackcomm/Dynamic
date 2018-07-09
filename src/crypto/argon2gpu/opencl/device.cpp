@@ -15,33 +15,28 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "crypto/argon2gpu/argon2-opencl/device.h"
+#include "crypto/argon2gpu/opencl/device.h"
 
 #include <sstream>
-#include <unordered_map>
 #include <stdexcept>
+#include <unordered_map>
 
 namespace argon2gpu
 {
 namespace opencl
 {
-
 std::string Device::getName() const
 {
     return "OpenCL Device '" + device.getInfo<CL_DEVICE_NAME>() + "' (" + device.getInfo<CL_DEVICE_VENDOR>() + ")";
 }
 
 template <class T>
-static std::ostream &printBitfield(std::ostream &out, T value,
-                                   const std::vector<std::pair<T, std::string>> &lookup)
+static std::ostream& printBitfield(std::ostream& out, T value, const std::vector<std::pair<T, std::string> >& lookup)
 {
     bool first = true;
-    for (auto &entry : lookup)
-    {
-        if (value & entry.first)
-        {
-            if (!first)
-            {
+    for (auto& entry : lookup) {
+        if (value & entry.first) {
+            if (!first) {
                 out << " | ";
             }
             first = false;
@@ -52,28 +47,22 @@ static std::ostream &printBitfield(std::ostream &out, T value,
 }
 
 template <class T>
-static std::ostream &printEnum(std::ostream &out, T value,
-                               const std::unordered_map<T, std::string> &lookup)
+static std::ostream& printEnum(std::ostream& out, T value, const std::unordered_map<T, std::string>& lookup)
 {
-    try
-    {
+    try {
         return out << lookup.at(value);
-    }
-    catch (const std::out_of_range &)
-    {
+    } catch (const std::out_of_range&) {
         return out << "<invalid>";
     }
 }
 
 template <class T>
-std::ostream &operator<<(std::ostream &out, const std::vector<T> &vec)
+std::ostream& operator<<(std::ostream& out, const std::vector<T>& vec)
 {
     out << "[";
     bool first = true;
-    for (T value : vec)
-    {
-        if (!first)
-        {
+    for (T value : vec) {
+        if (!first) {
             out << ", ";
         }
         first = false;

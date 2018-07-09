@@ -15,28 +15,30 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ARGON2_OPENCL_KERNELLOADER_H
-#define ARGON2_OPENCL_KERNELLOADER_H
-
-#include "crypto/argon2gpu/argon2-opencl/opencl.h"
-#include "crypto/argon2gpu/argon2-gpu/common.h"
-
-#include <string>
+#include "crypto/argon2gpu/opencl/program-context.h"
+#include "crypto/argon2gpu/opencl/kernel-loader.h"
 
 namespace argon2gpu
 {
 namespace opencl
 {
-
-namespace KernelLoader
+ProgramContext::ProgramContext(
+    const GlobalContext* globalContext,
+    const std::vector<Device>& devices,
+    Type type,
+    Version version)
+    : globalContext(globalContext), devices(), type(type), version(version)
 {
-cl::Program loadArgon2Program(
-    const cl::Context &context,
-    const std::string &sourceDirectory,
-    Type type, Version version, bool debug = false);
-};
+    this->devices.reserve(devices.size());
+    for (auto& device : devices) {
+        this->devices.push_back(device.getCLDevice());
+    }
+    context = cl::Context(this->devices);
+
+    program = KernelLoader::loadArgon2Program(
+        // FIXME path:
+        context, "./src/crypto/argon2gpu/opencl", type, version);
+}
 
 } // namespace opencl
 } // namespace argon2gpu
-
-#endif // ARGON2_OPENCL_KERNELLOADER_H

@@ -15,13 +15,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "crypto/argon2gpu/argon2-gpu/blake2b.h"
+#include "crypto/argon2gpu/gpu/blake2b.h"
 
 #include <cstring>
 
 namespace argon2gpu
 {
-
 static const std::uint64_t blake2b_IV[8] = {
     UINT64_C(0x6a09e667f3bcc908), UINT64_C(0xbb67ae8584caa73b),
     UINT64_C(0x3c6ef372fe94f82b), UINT64_C(0xa54ff53a5f1d36f1),
@@ -46,8 +45,7 @@ static const unsigned int blake2b_sigma[12][16] = {
 #define rotr64(x, n) (((x) >> (n)) | ((x) << (64 - (n))))
 
 #define G(m, r, i, a, b, c, d)                      \
-    do                                              \
-    {                                               \
+    do {                                            \
         a = a + b + m[blake2b_sigma[r][2 * i + 0]]; \
         d = rotr64(d ^ a, 32);                      \
         c = c + d;                                  \
@@ -59,8 +57,7 @@ static const unsigned int blake2b_sigma[12][16] = {
     } while ((void)0, 0)
 
 #define ROUND(m, v, r)                        \
-    do                                        \
-    {                                         \
+    do {                                      \
         G(m, r, 0, v[0], v[4], v[8], v[12]);  \
         G(m, r, 1, v[1], v[5], v[9], v[13]);  \
         G(m, r, 2, v[2], v[6], v[10], v[14]); \
@@ -71,9 +68,9 @@ static const unsigned int blake2b_sigma[12][16] = {
         G(m, r, 7, v[3], v[4], v[9], v[14]);  \
     } while ((void)0, 0)
 
-static std::uint64_t load64(const void *src)
+static std::uint64_t load64(const void* src)
 {
-    auto in = static_cast<const std::uint8_t *>(src);
+    auto in = static_cast<const std::uint8_t*>(src);
     std::uint64_t res = *in++;
     res |= static_cast<std::uint64_t>(*in++) << 8;
     res |= static_cast<std::uint64_t>(*in++) << 16;
@@ -85,9 +82,9 @@ static std::uint64_t load64(const void *src)
     return res;
 }
 
-static void store64(void *dst, std::uint64_t v)
+static void store64(void* dst, std::uint64_t v)
 {
-    auto out = static_cast<std::uint8_t *>(dst);
+    auto out = static_cast<std::uint8_t*>(dst);
     *out++ = static_cast<std::uint8_t>(v);
     v >>= 8;
     *out++ = static_cast<std::uint8_t>(v);
@@ -116,12 +113,12 @@ void Blake2b::init(std::size_t outlen)
             (UINT64_C(1) << 16) | (UINT64_C(1) << 24);
 }
 
-void Blake2b::compress(const void *block, std::uint64_t f0)
+void Blake2b::compress(const void* block, std::uint64_t f0)
 {
     std::uint64_t m[16];
     std::uint64_t v[16];
 
-    auto in = static_cast<const uint64_t *>(block);
+    auto in = static_cast<const uint64_t*>(block);
 
     m[0] = load64(in + 0);
     m[1] = load64(in + 1);
@@ -186,12 +183,11 @@ void Blake2b::incrementCounter(std::uint64_t inc)
     t[1] += (t[0] < inc);
 }
 
-void Blake2b::update(const void *in, std::size_t inLen)
+void Blake2b::update(const void* in, std::size_t inLen)
 {
-    auto bin = static_cast<const std::uint8_t *>(in);
+    auto bin = static_cast<const std::uint8_t*>(in);
 
-    if (bufLen + inLen > BLOCK_BYTES)
-    {
+    if (bufLen + inLen > BLOCK_BYTES) {
         std::size_t have = bufLen;
         std::size_t left = BLOCK_BYTES - have;
         std::memcpy(buf + have, bin, left);
@@ -203,8 +199,7 @@ void Blake2b::update(const void *in, std::size_t inLen)
         inLen -= left;
         bin += left;
 
-        while (inLen > BLOCK_BYTES)
-        {
+        while (inLen > BLOCK_BYTES) {
             incrementCounter(BLOCK_BYTES);
             compress(bin, 0);
             inLen -= BLOCK_BYTES;
@@ -215,7 +210,7 @@ void Blake2b::update(const void *in, std::size_t inLen)
     bufLen += inLen;
 }
 
-void Blake2b::final(void *out, std::size_t outLen)
+void Blake2b::final(void* out, std::size_t outLen)
 {
     std::uint8_t buffer[OUT_BYTES] = {0};
 
@@ -223,8 +218,7 @@ void Blake2b::final(void *out, std::size_t outLen)
     std::memset(buf + bufLen, 0, BLOCK_BYTES - bufLen);
     compress(buf, UINT64_C(0xFFFFFFFFFFFFFFFF));
 
-    for (unsigned int i = 0; i < 8; i++)
-    {
+    for (unsigned int i = 0; i < 8; i++) {
         store64(buffer + i * sizeof(std::uint64_t), h[i]);
     }
 

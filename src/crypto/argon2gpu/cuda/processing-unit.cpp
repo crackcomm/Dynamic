@@ -15,8 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "crypto/argon2gpu/argon2-cuda/processing-unit.h"
-#include "crypto/argon2gpu/argon2-cuda/cuda-exception.h"
+#include "crypto/argon2gpu/da-exception.h"
+#include "crypto/argon2gpu/ocessing-unit.h"
 
 #include <limits>
 #ifndef NDEBUG
@@ -27,13 +27,11 @@ namespace argon2gpu
 {
 namespace cuda
 {
-
 static void setCudaDevice(int deviceIndex)
 {
     int currentIndex = -1;
     CudaException::check(cudaGetDevice(&currentIndex));
-    if (currentIndex != deviceIndex)
-    {
+    if (currentIndex != deviceIndex) {
         CudaException::check(cudaSetDevice(deviceIndex));
     }
 }
@@ -44,43 +42,45 @@ static bool isPowerOfTwo(std::uint32_t x)
 }
 
 ProcessingUnit::ProcessingUnit(
-    const ProgramContext *programContext, const Argon2Params *params,
-    const Device *device, std::size_t batchSize, bool bySegment,
+    const ProgramContext* programContext,
+    const Argon2Params* params,
+    const Device* device,
+    std::size_t batchSize,
+    bool bySegment,
     bool precomputeRefs)
     : programContext(programContext), params(params), device(device),
       runner(programContext->getArgon2Type(),
-             programContext->getArgon2Version(), params->getTimeCost(),
-             params->getLanes(), params->getSegmentBlocks(), batchSize,
-             bySegment, precomputeRefs, device->getDeviceIndex()),
+          programContext->getArgon2Version(),
+          params->getTimeCost(),
+          params->getLanes(),
+          params->getSegmentBlocks(),
+          batchSize,
+          bySegment,
+          precomputeRefs,
+          device->getDeviceIndex()),
       bestLanesPerBlock(runner.getMinLanesPerBlock()),
       bestJobsPerBlock(runner.getMinJobsPerBlock())
 {
     setCudaDevice(device->getDeviceIndex());
 
     /* pre-fill first blocks with pseudo-random data: */
-    for (std::size_t i = 0; i < batchSize; i++)
-    {
+    for (std::size_t i = 0; i < batchSize; i++) {
         setInputAndSalt(i, NULL, 0);
     }
 
-    if (runner.getMaxLanesPerBlock() > runner.getMinLanesPerBlock() && isPowerOfTwo(runner.getMaxLanesPerBlock()))
-    {
+    if (runner.getMaxLanesPerBlock() > runner.getMinLanesPerBlock() && isPowerOfTwo(runner.getMaxLanesPerBlock())) {
 #ifndef NDEBUG
         std::cerr << "[INFO] Tuning lanes per block..." << std::endl;
 #endif
 
         float bestTime = std::numeric_limits<float>::infinity();
         for (std::uint32_t lpb = 1; lpb <= runner.getMaxLanesPerBlock();
-             lpb *= 2)
-        {
+             lpb *= 2) {
             float time;
-            try
-            {
+            try {
                 runner.run(lpb, bestJobsPerBlock);
                 time = runner.finish();
-            }
-            catch (CudaException &ex)
-            {
+            } catch (CudaException& ex) {
 #ifndef NDEBUG
                 std::cerr << "[WARN]   CUDA error on " << lpb
                           << " lanes per block: " << ex.what() << std::endl;
@@ -93,8 +93,7 @@ ProcessingUnit::ProcessingUnit(
                       << time << " ms" << std::endl;
 #endif
 
-            if (time < bestTime)
-            {
+            if (time < bestTime) {
                 bestTime = time;
                 bestLanesPerBlock = lpb;
             }
@@ -106,24 +105,19 @@ ProcessingUnit::ProcessingUnit(
     }
 
     /* Only tune jobs per block if we hit maximum lanes per block: */
-    if (bestLanesPerBlock == runner.getMaxLanesPerBlock() && runner.getMaxJobsPerBlock() > runner.getMinJobsPerBlock() && isPowerOfTwo(runner.getMaxJobsPerBlock()))
-    {
+    if (bestLanesPerBlock == runner.getMaxLanesPerBlock() && runner.getMaxJobsPerBlock() > runner.getMinJobsPerBlock() && isPowerOfTwo(runner.getMaxJobsPerBlock())) {
 #ifndef NDEBUG
         std::cerr << "[INFO] Tuning jobs per block..." << std::endl;
 #endif
 
         float bestTime = std::numeric_limits<float>::infinity();
         for (std::uint32_t jpb = 1; jpb <= runner.getMaxJobsPerBlock();
-             jpb *= 2)
-        {
+             jpb *= 2) {
             float time;
-            try
-            {
+            try {
                 runner.run(bestLanesPerBlock, jpb);
                 time = runner.finish();
-            }
-            catch (CudaException &ex)
-            {
+            } catch (CudaException& ex) {
 #ifndef NDEBUG
                 std::cerr << "[WARN]   CUDA error on " << jpb
                           << " jobs per block: " << ex.what() << std::endl;
@@ -136,8 +130,7 @@ ProcessingUnit::ProcessingUnit(
                       << time << " ms" << std::endl;
 #endif
 
-            if (time < bestTime)
-            {
+            if (time < bestTime) {
                 bestTime = time;
                 bestJobsPerBlock = jpb;
             }
@@ -149,18 +142,17 @@ ProcessingUnit::ProcessingUnit(
     }
 }
 
-void ProcessingUnit::setInputAndSalt(std::size_t index, const void *pw,
-                                     const std::size_t pwSize)
+void ProcessingUnit::setInputAndSalt(std::size_t index, const void* pw, const std::size_t pwSize)
 {
     std::size_t size = params->getLanes() * 2 * ARGON2_BLOCK_SIZE;
     auto buffer = std::unique_ptr<uint8_t[]>(new uint8_t[size]);
     params->fillFirstBlocks(buffer.get(), pw, pwSize,
-                            programContext->getArgon2Type(),
-                            programContext->getArgon2Version());
+        programContext->getArgon2Type(),
+        programContext->getArgon2Version());
     runner.writeInputMemory(index, buffer.get());
 }
 
-void ProcessingUnit::getHash(std::size_t index, void *hash)
+void ProcessingUnit::getHash(std::size_t index, void* hash)
 {
     std::size_t size = params->getLanes() * ARGON2_BLOCK_SIZE;
     auto buffer = std::unique_ptr<uint8_t[]>(new uint8_t[size]);

@@ -23,36 +23,38 @@
 
 #include <memory>
 
-#include "program-context.h"
+#include "crypto/argon2gpu/mon.h"
 #include "kernels.h"
-#include "crypto/argon2gpu/argon2-gpu/common.h"
+#include "program-context.h"
 
 namespace argon2gpu
 {
 namespace cuda
 {
-
 class ProcessingUnit
 {
-  private:
-    const ProgramContext *programContext;
-    const Argon2Params *params;
-    const Device *device;
+private:
+    const ProgramContext* programContext;
+    const Argon2Params* params;
+    const Device* device;
 
     KernelRunner runner;
     std::uint32_t bestLanesPerBlock;
     std::uint32_t bestJobsPerBlock;
 
-  public:
+public:
     std::size_t getBatchSize() const { return runner.getBatchSize(); }
 
     ProcessingUnit(
-        const ProgramContext *programContext, const Argon2Params *params,
-        const Device *device, std::size_t batchSize,
-        bool bySegment = true, bool precomputeRefs = false);
+        const ProgramContext* programContext,
+        const Argon2Params* params,
+        const Device* device,
+        std::size_t batchSize,
+        bool bySegment = true,
+        bool precomputeRefs = false);
 
-    void setInputAndSalt(std::size_t index, const void *input, const std::size_t inputSize);
-    void getHash(std::size_t index, void *hash);
+    void setInputAndSalt(std::size_t index, const void* input, const std::size_t inputSize);
+    void getHash(std::size_t index, void* hash);
 
     void beginProcessing();
     void endProcessing();
@@ -65,29 +67,31 @@ class ProcessingUnit
 
 #include <cstddef>
 
+#include "crypto/argon2gpu/mon.h"
 #include "program-context.h"
-#include "crypto/argon2gpu/argon2-gpu/common.h"
 
 namespace argon2gpu
 {
 namespace cuda
 {
-
 class ProcessingUnit
 {
-  public:
+public:
     std::size_t getBatchSize() const { return 0; }
 
     ProcessingUnit(
-        const ProgramContext *programContext, const Argon2Params *params,
-        const Device *device, std::size_t batchSize,
-        bool bySegment = true, bool precomputeRefs = false)
+        const ProgramContext* programContext,
+        const Argon2Params* params,
+        const Device* device,
+        std::size_t batchSize,
+        bool bySegment = true,
+        bool precomputeRefs = false)
     {
     }
 
-    void setInputAndSalt(std::size_t index, const void *input, std::size_t inputSize) {}
+    void setInputAndSalt(std::size_t index, const void* input, std::size_t inputSize) {}
 
-    void getHash(std::size_t index, void *hash) {}
+    void getHash(std::size_t index, void* hash) {}
 
     void beginProcessing() {}
     void endProcessing() {}

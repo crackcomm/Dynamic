@@ -18,18 +18,17 @@
 #ifndef ARGON2_OPENCL_PROGRAMCONTEXT_H
 #define ARGON2_OPENCL_PROGRAMCONTEXT_H
 
-#include "crypto/argon2gpu/argon2-opencl/global-context.h"
-#include "crypto/argon2gpu/argon2-gpu/common.h"
+#include "crypto/argon2gpu/opencl/global-context.h"
+#include "crypto/argon2gpu/gpu/common.h"
 
 namespace argon2gpu
 {
 namespace opencl
 {
-
 class ProgramContext
 {
-  private:
-    const GlobalContext *globalContext;
+private:
+    const GlobalContext* globalContext;
 
     std::vector<cl::Device> devices;
     cl::Context context;
@@ -38,20 +37,21 @@ class ProgramContext
     Type type;
     Version version;
 
-  public:
-    const GlobalContext *getGlobalContext() const { return globalContext; }
+public:
+    const GlobalContext* getGlobalContext() const { return globalContext; }
 
-    const std::vector<cl::Device> &getDevices() const { return devices; }
-    const cl::Context &getContext() const { return context; }
-    const cl::Program &getProgram() const { return program; }
+    const std::vector<cl::Device>& getDevices() const { return devices; }
+    const cl::Context& getContext() const { return context; }
+    const cl::Program& getProgram() const { return program; }
 
     Type getArgon2Type() const { return type; }
     Version getArgon2Version() const { return version; }
 
     ProgramContext(
-        const GlobalContext *globalContext,
-        const std::vector<Device> &devices,
-        Type type, Version version);
+        const GlobalContext* globalContext,
+        const std::vector<Device>& devices,
+        Type type,
+        Version version);
 };
 
 } // namespace opencl

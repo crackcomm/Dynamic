@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "crypto/argon2gpu/argon2-opencl/processing-unit.h"
+#include "crypto/argon2gpu/opencl/processing-unit.h"
 
 #include <limits>
 #ifndef NDEBUG
@@ -26,46 +26,41 @@ namespace argon2gpu
 {
 namespace opencl
 {
-
 static bool isPowerOfTwo(std::uint32_t x)
 {
     return (x & (x - 1)) == 0;
 }
 
 ProcessingUnit::ProcessingUnit(
-    const ProgramContext *programContext, const Argon2Params *params,
-    const Device *device, std::size_t batchSize,
-    bool bySegment, bool precomputeRefs)
+    const ProgramContext* programContext,
+    const Argon2Params* params,
+    const Device* device,
+    std::size_t batchSize,
+    bool bySegment,
+    bool precomputeRefs)
     : programContext(programContext), params(params), device(device),
-      runner(programContext, params, device, batchSize, bySegment,
-             precomputeRefs),
+      runner(programContext, params, device, batchSize, bySegment, precomputeRefs),
       bestLanesPerBlock(runner.getMinLanesPerBlock()),
       bestJobsPerBlock(runner.getMinJobsPerBlock())
 {
     /* pre-fill first blocks with pseudo-random data: */
-    for (std::size_t i = 0; i < batchSize; i++)
-    {
+    for (std::size_t i = 0; i < batchSize; i++) {
         setInputAndSalt(i, NULL, 0);
     }
 
-    if (runner.getMaxLanesPerBlock() > runner.getMinLanesPerBlock() && isPowerOfTwo(runner.getMaxLanesPerBlock()))
-    {
+    if (runner.getMaxLanesPerBlock() > runner.getMinLanesPerBlock() && isPowerOfTwo(runner.getMaxLanesPerBlock())) {
 #ifndef NDEBUG
         std::cerr << "[INFO] Tuning lanes per block..." << std::endl;
 #endif
 
         float bestTime = std::numeric_limits<float>::infinity();
         for (std::uint32_t lpb = 1; lpb <= runner.getMaxLanesPerBlock();
-             lpb *= 2)
-        {
+             lpb *= 2) {
             float time;
-            try
-            {
+            try {
                 runner.run(lpb, bestJobsPerBlock);
                 time = runner.finish();
-            }
-            catch (cl::Error &ex)
-            {
+            } catch (cl::Error& ex) {
 #ifndef NDEBUG
                 std::cerr << "[WARN]   OpenCL error on " << lpb
                           << " lanes per block: " << ex.what() << std::endl;
@@ -78,8 +73,7 @@ ProcessingUnit::ProcessingUnit(
                       << time << " ms" << std::endl;
 #endif
 
-            if (time < bestTime)
-            {
+            if (time < bestTime) {
                 bestTime = time;
                 bestLanesPerBlock = lpb;
             }
@@ -91,24 +85,19 @@ ProcessingUnit::ProcessingUnit(
     }
 
     /* Only tune jobs per block if we hit maximum lanes per block: */
-    if (bestLanesPerBlock == runner.getMaxLanesPerBlock() && runner.getMaxJobsPerBlock() > runner.getMinJobsPerBlock() && isPowerOfTwo(runner.getMaxJobsPerBlock()))
-    {
+    if (bestLanesPerBlock == runner.getMaxLanesPerBlock() && runner.getMaxJobsPerBlock() > runner.getMinJobsPerBlock() && isPowerOfTwo(runner.getMaxJobsPerBlock())) {
 #ifndef NDEBUG
         std::cerr << "[INFO] Tuning jobs per block..." << std::endl;
 #endif
 
         float bestTime = std::numeric_limits<float>::infinity();
         for (std::uint32_t jpb = 1; jpb <= runner.getMaxJobsPerBlock();
-             jpb *= 2)
-        {
+             jpb *= 2) {
             float time;
-            try
-            {
+            try {
                 runner.run(bestLanesPerBlock, jpb);
                 time = runner.finish();
-            }
-            catch (cl::Error &ex)
-            {
+            } catch (cl::Error& ex) {
 #ifndef NDEBUG
                 std::cerr << "[WARN]   OpenCL error on " << jpb
                           << " jobs per block: " << ex.what() << std::endl;
@@ -121,8 +110,7 @@ ProcessingUnit::ProcessingUnit(
                       << time << " ms" << std::endl;
 #endif
 
-            if (time < bestTime)
-            {
+            if (time < bestTime) {
                 bestTime = time;
                 bestJobsPerBlock = jpb;
             }
@@ -134,19 +122,18 @@ ProcessingUnit::ProcessingUnit(
     }
 }
 
-void ProcessingUnit::setInputAndSalt(std::size_t index, const void *pw,
-                                     std::size_t pwSize)
+void ProcessingUnit::setInputAndSalt(std::size_t index, const void* pw, std::size_t pwSize)
 {
-    void *memory = runner.mapInputMemory(index);
+    void* memory = runner.mapInputMemory(index);
     params->fillFirstBlocks(memory, pw, pwSize,
-                            programContext->getArgon2Type(),
-                            programContext->getArgon2Version());
+        programContext->getArgon2Type(),
+        programContext->getArgon2Version());
     runner.unmapInputMemory(memory);
 }
 
-void ProcessingUnit::getHash(std::size_t index, void *hash)
+void ProcessingUnit::getHash(std::size_t index, void* hash)
 {
-    void *memory = runner.mapOutputMemory(index);
+    void* memory = runner.mapOutputMemory(index);
     params->finalize(hash, memory);
     runner.unmapOutputMemory(memory);
 }

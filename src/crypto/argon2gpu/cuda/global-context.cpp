@@ -15,22 +15,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "crypto/argon2gpu/argon2-cuda/kernels.h"
-#include "crypto/argon2gpu/argon2-cuda/program-context.h"
-
-#define THREADS_PER_LANE 32
+#include "crypto/argon2gpu/da-exception.h"
+#include "crypto/argon2gpu/obal-context.h"
 
 namespace argon2gpu
 {
 namespace cuda
 {
-
-ProgramContext::ProgramContext(
-    const GlobalContext *globalContext,
-    const std::vector<Device> &devices,
-    Type type, Version version)
-    : globalContext(globalContext), type(type), version(version)
+GlobalContext::GlobalContext()
+    : devices()
 {
+    int count;
+    CudaException::check(cudaGetDeviceCount(&count));
+
+    devices.reserve(count);
+    for (int i = 0; i < count; i++) {
+        devices.emplace_back(i);
+    }
 }
 
 } // namespace cuda

@@ -20,34 +20,36 @@
 
 #include <memory>
 
-#include "crypto/argon2gpu/argon2-opencl/kernel-runner.h"
+#include "crypto/argon2gpu/opencl/kernel-runner.h"
 
 namespace argon2gpu
 {
 namespace opencl
 {
-
 class ProcessingUnit
 {
-  private:
-    const ProgramContext *programContext;
-    const Argon2Params *params;
-    const Device *device;
+private:
+    const ProgramContext* programContext;
+    const Argon2Params* params;
+    const Device* device;
 
     KernelRunner runner;
     std::uint32_t bestLanesPerBlock;
     std::uint32_t bestJobsPerBlock;
 
-  public:
+public:
     std::size_t getBatchSize() const { return runner.getBatchSize(); }
 
     ProcessingUnit(
-        const ProgramContext *programContext, const Argon2Params *params,
-        const Device *device, std::size_t batchSize,
-        bool bySegment = true, bool precomputeRefs = false);
+        const ProgramContext* programContext,
+        const Argon2Params* params,
+        const Device* device,
+        std::size_t batchSize,
+        bool bySegment = true,
+        bool precomputeRefs = false);
 
-    void setInputAndSalt(std::size_t index, const void *input, std::size_t inputSize);
-    void getHash(std::size_t index, void *hash);
+    void setInputAndSalt(std::size_t index, const void* input, std::size_t inputSize);
+    void getHash(std::size_t index, void* hash);
 
     void beginProcessing();
     void endProcessing();

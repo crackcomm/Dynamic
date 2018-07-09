@@ -17,14 +17,13 @@
 
 #include <cuda_runtime.h>
 
-#include "crypto/argon2gpu/argon2-cuda/device.h"
-#include "crypto/argon2gpu/argon2-cuda/cuda-exception.h"
+#include "crypto/argon2gpu/da-exception.h"
+#include "crypto/argon2gpu/vice.h"
 
 namespace argon2gpu
 {
 namespace cuda
 {
-
 std::string Device::getName() const
 {
     cudaDeviceProp prop;
