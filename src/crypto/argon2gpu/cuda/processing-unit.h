@@ -23,9 +23,9 @@
 
 #include <memory>
 
-#include "crypto/argon2gpu/mon.h"
-#include "kernels.h"
-#include "program-context.h"
+#include "crypto/argon2gpu/common.h"
+#include "crypto/argon2gpu/cuda/program-context.h"
+#include "crypto/argon2gpu/cuda/kernels.h"
 
 namespace argon2gpu
 {
@@ -67,8 +67,8 @@ public:
 
 #include <cstddef>
 
-#include "crypto/argon2gpu/mon.h"
-#include "program-context.h"
+#include "crypto/argon2gpu/common.h"
+#include "crypto/argon2gpu/cuda/program-context.h"
 
 namespace argon2gpu
 {

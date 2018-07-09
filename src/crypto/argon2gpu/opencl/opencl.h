@@ -32,6 +32,6 @@
 #define __CL_ENABLE_EXCEPTIONS
 /* Include local version of <CL/cl.hpp>
  * because not all platforms ship with it: */
-#include "cl.hpp"
+#include "crypto/argon2gpu/opencl/cl.hpp"
 
 #endif // OPENCL_H

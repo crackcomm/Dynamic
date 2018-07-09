@@ -18,8 +18,8 @@
 #ifndef ARGON2_OPENCL_KERNELRUNNER_H
 #define ARGON2_OPENCL_KERNELRUNNER_H
 
-#include "crypto/argon2gpu/mon.h"
-#include "crypto/argon2gpu/program-context.h"
+#include "crypto/argon2gpu/common.h"
+#include "crypto/argon2gpu/opencl/program-context.h"
 
 namespace argon2gpu
 {

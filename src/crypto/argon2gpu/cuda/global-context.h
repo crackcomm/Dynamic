@@ -19,7 +19,7 @@
 #ifndef ARGON2_CUDA_GLOBALCONTEXT_H
 #define ARGON2_CUDA_GLOBALCONTEXT_H
 
-#include "device.h"
+#include "crypto/argon2gpu/cuda/device.h"
 
 #include <string>
 #include <vector>

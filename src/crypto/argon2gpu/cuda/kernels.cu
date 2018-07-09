@@ -3,8 +3,8 @@
 #define __CUDACC__
 #endif
 
-#include "crypto/argon2gpu/da-exception.h"
-#include "crypto/argon2gpu/rnels.h"
+#include "crypto/argon2gpu/cuda/cuda-exception.h"
+#include "crypto/argon2gpu/cuda/kernels.h"
 
 #include <stdexcept>
 #ifndef NDEBUG

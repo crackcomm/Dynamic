@@ -15,8 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "crypto/argon2gpu/da-exception.h"
-#include "crypto/argon2gpu/ocessing-unit.h"
+#include "crypto/argon2gpu/cuda-exception.h"
+#include "crypto/argon2gpu/processing-unit.h"
 
 #include <limits>
 #ifndef NDEBUG

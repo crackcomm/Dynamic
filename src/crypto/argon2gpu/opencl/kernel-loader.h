@@ -18,8 +18,8 @@
 #ifndef ARGON2_OPENCL_KERNELLOADER_H
 #define ARGON2_OPENCL_KERNELLOADER_H
 
-#include "crypto/argon2gpu/mon.h"
-#include "crypto/argon2gpu/opencl.h"
+#include "crypto/argon2gpu/common.h"
+#include "crypto/argon2gpu/opencl/opencl.h"
 
 #include <string>
 

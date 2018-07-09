@@ -15,8 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "crypto/argon2gpu/da-exception.h"
-#include "crypto/argon2gpu/obal-context.h"
+#include "crypto/argon2gpu/cuda-exception.h"
+#include "crypto/argon2gpu/global-context.h"
 
 namespace argon2gpu
 {

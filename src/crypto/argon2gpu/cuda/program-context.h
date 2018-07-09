@@ -19,8 +19,8 @@
 #ifndef ARGON2_CUDA_PROGRAMCONTEXT_H
 #define ARGON2_CUDA_PROGRAMCONTEXT_H
 
-#include "crypto/argon2gpu/mon.h"
-#include "global-context.h"
+#include "crypto/argon2gpu/common.h"
+#include "crypto/argon2gpu/cuda/global-context.h"
 
 namespace argon2gpu
 {
