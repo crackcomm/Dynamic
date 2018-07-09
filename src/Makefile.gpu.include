@@ -23,7 +23,7 @@ crypto_argon2gpu_libdynamic_gpu_a_SOURCES = \
   crypto/argon2gpu/argon2-gpu/common.cpp \
   crypto/argon2gpu/argon2-gpu/blake2b.cpp
 
-if CUDA_FOUND
+if HAVE_CUDA
   crypto_argon2gpu_libdynamic_gpu_a_SOURCES += \
     crypto/argon2gpu/argon2-cuda/cuda-exception.h \
     crypto/argon2gpu/argon2-cuda/device.h \
