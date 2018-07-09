@@ -17,8 +17,8 @@
 
 #include <cuda_runtime.h>
 
-#include "crypto/argon2gpu/cuda-exception.h"
-#include "crypto/argon2gpu/device.h"
+#include "crypto/argon2gpu/cuda/cuda-exception.h"
+#include "crypto/argon2gpu/cuda/device.h"
 
 namespace argon2gpu
 {

@@ -15,8 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "crypto/argon2gpu/program-context.h"
-#include "crypto/argon2gpu/kernels.h"
+#include "crypto/argon2gpu/cuda/program-context.h"
+#include "crypto/argon2gpu/cuda/kernels.h"
 
 #define THREADS_PER_LANE 32
 

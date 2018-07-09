@@ -15,8 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "crypto/argon2gpu/cuda-exception.h"
-#include "crypto/argon2gpu/processing-unit.h"
+#include "crypto/argon2gpu/cuda/cuda-exception.h"
+#include "crypto/argon2gpu/cuda/processing-unit.h"
 
 #include <limits>
 #ifndef NDEBUG
