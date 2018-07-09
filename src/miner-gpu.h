@@ -10,7 +10,7 @@
 #include "crypto/argon2gpu/common.h"
 
 // TODO: configure script
-#define HAVE_CUDA
+#define HAVE_CUDA 1
 
 #ifdef HAVE_CUDA
 #include "crypto/argon2gpu/cuda/cuda-exception.h"
