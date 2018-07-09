@@ -7,7 +7,7 @@
 
 #include <cstddef>
 
-#include "crypto/argon2gpu/gpu/common.h"
+#include "crypto/argon2gpu/common.h"
 
 #ifdef HAVE_CUDA
 #include "crypto/argon2gpu/cuda/cuda-exception.h"
@@ -17,7 +17,7 @@
 #include "crypto/argon2gpu/opencl/processing-unit.h"
 #endif
 
-    using Argon2GPUParams = argon2gpu::Argon2Params;
+using Argon2GPUParams = argon2gpu::Argon2Params;
 
 #ifdef HAVE_CUDA
 using Argon2GPU = argon2gpu::cuda::ProcessingUnit;

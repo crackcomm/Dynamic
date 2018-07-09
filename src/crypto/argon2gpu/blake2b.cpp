@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "crypto/argon2gpu/gpu/blake2b.h"
+#include "crypto/argon2gpu/blake2b.h"
 
 #include <cstring>
 

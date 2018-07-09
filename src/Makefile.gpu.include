@@ -18,10 +18,10 @@ endif
 crypto_argon2gpu_libdynamic_gpu_a_CPPFLAGS = $(DYNAMIC_INCLUDES)
 crypto_argon2gpu_libdynamic_gpu_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 crypto_argon2gpu_libdynamic_gpu_a_SOURCES = \
-  crypto/argon2gpu/gpu/blake2b.h \
-  crypto/argon2gpu/gpu/common.h \
-  crypto/argon2gpu/gpu/common.cpp \
-  crypto/argon2gpu/gpu/blake2b.cpp
+  crypto/argon2gpu/blake2b.h \
+  crypto/argon2gpu/common.h \
+  crypto/argon2gpu/common.cpp \
+  crypto/argon2gpu/blake2b.cpp
 
 if HAVE_CUDA
   crypto_argon2gpu_libdynamic_gpu_a_SOURCES += \
