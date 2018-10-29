@@ -1,25 +1,25 @@
-// Cop / config.h) 2016-2018 Duality Blockchain Solutions Developers
+// Copyright (c)2016-2018 Duality Blockchain Solutions Developers
 // Copyright (c) 2014-2017 The Dash Core Developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "dynode/active.h"
-#include "util/base58.h"
+#include "chain/validation.h"
 #include "clientversion.h"
 #include "dynode-payments.h"
 #include "dynode-sync.h"
+#include "dynode/active.h"
 #include "dynode/config.h"
 #include "dynode/manager.h"
 #include "init.h"
 #include "net/base.h"
-#include "chain/validation.h"
+#include "util/base58.h"
 #ifdef ENABLE_WALLET
 #include "privatesend/client.h"
 #endif // ENABLE_WALLET
 #include "privatesend/server.h"
 #include "rpc/server.h"
-#include "util/util.h"
 #include "util/moneystr.h"
+#include "util/util.h"
 
 #include <univalue.h>
 
@@ -39,14 +39,13 @@ UniValue privatesend(const JSONRPCRequest& request)
         return NullUniValue;
 
     if (request.fHelp || request.params.size() != 1)
-        throw std::runtime_error(
-            "privatesend \"command\"\n"
-            "\nArguments:\n"
-            "1. \"command\"        (string or set of strings, required) The command to execute\n"
-            "\nAvailable commands:\n"
-            "  start       - Start mixing\n"
-            "  stop        - Stop mixing\n"
-            "  reset       - Reset mixing\n");
+        throw std::runtime_error("privatesend \"command\"\n"
+                                 "\nArguments:\n"
+                                 "1. \"command\"        (string or set of strings, required) The command to execute\n"
+                                 "\nAvailable commands:\n"
+                                 "  start       - Start mixing\n"
+                                 "  stop        - Stop mixing\n"
+                                 "  reset       - Reset mixing\n");
 
     if (fDynodeMode)
         throw JSONRPCError(RPC_INTERNAL_ERROR, "Client-side mixing is not supported on dynodes");
@@ -80,12 +79,12 @@ UniValue privatesend(const JSONRPCRequest& request)
 UniValue getpoolinfo(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() != 0)
-        throw std::runtime_error(
-            "getpoolinfo\n"
-            "Returns an object containing mixing pool related information.\n");
+        throw std::runtime_error("getpoolinfo\n"
+                                 "Returns an object containing mixing pool related information.\n");
 
 #ifdef ENABLE_WALLET
-    CPrivateSendBaseManager* pprivateSendBaseManager = fDynodeMode ? (CPrivateSendBaseManager*)&privateSendServer : (CPrivateSendBaseManager*)&privateSendClient;
+    CPrivateSendBaseManager* pprivateSendBaseManager =
+        fDynodeMode ? (CPrivateSendBaseManager*)&privateSendServer : (CPrivateSendBaseManager*)&privateSendClient;
 
     UniValue obj(UniValue::VOBJ);
     // TODO:
@@ -108,7 +107,8 @@ UniValue getpoolinfo(const JSONRPCRequest& request)
 
     if (pwalletMain) {
         obj.push_back(Pair("keys_left", pwalletMain->nKeysLeftSinceAutoBackup));
-        obj.push_back(Pair("warnings", pwalletMain->nKeysLeftSinceAutoBackup < PRIVATESEND_KEYS_THRESHOLD_WARNING ? "WARNING: keypool is almost depleted!" : ""));
+        obj.push_back(Pair("warnings",
+            pwalletMain->nKeysLeftSinceAutoBackup < PRIVATESEND_KEYS_THRESHOLD_WARNING ? "WARNING: keypool is almost depleted!" : ""));
     }
 #else  // ENABLE_WALLET
     UniValue obj(UniValue::VOBJ);
@@ -133,15 +133,14 @@ UniValue dynode(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_INVALID_PARAMETER, "DEPRECATED, please use start-all instead");
 #endif // ENABLE_WALLET
 
-    if (request.fHelp ||
-        (
+    if (request.fHelp || (
 #ifdef ENABLE_WALLET
-            strCommand != "start-alias" && strCommand != "start-all" && strCommand != "start-missing" &&
-            strCommand != "start-disabled" && strCommand != "outputs" &&
+                             strCommand != "start-alias" && strCommand != "start-all" && strCommand != "start-missing" &&
+                             strCommand != "start-disabled" && strCommand != "outputs" &&
 #endif // ENABLE_WALLET
-            strCommand != "list" && strCommand != "list-conf" && strCommand != "count" &&
-            strCommand != "debug" && strCommand != "current" && strCommand != "winner" && strCommand != "winners" && strCommand != "genkey" &&
-            strCommand != "connect" && strCommand != "status"))
+                             strCommand != "list" && strCommand != "list-conf" && strCommand != "count" && strCommand != "debug" &&
+                             strCommand != "current" && strCommand != "winner" && strCommand != "winners" && strCommand != "genkey" &&
+                             strCommand != "connect" && strCommand != "status"))
         throw std::runtime_error(
             "dynode \"command\"...\n"
             "Set of commands to execute dynode related actions\n"
@@ -228,8 +227,7 @@ UniValue dynode(const JSONRPCRequest& request)
             return nCount;
 
         if (strMode == "all")
-            return tfm::format("Total: %d (PS Compatible: %d / Enabled: %d / Qualify: %d)",
-                total, ps, enabled, nCount);
+            return tfm::format("Total: %d (PS Compatible: %d / Enabled: %d / Qualify: %d)", total, ps, enabled, nCount);
     }
 
     if (strCommand == "current" || strCommand == "winner") {
@@ -285,7 +283,8 @@ UniValue dynode(const JSONRPCRequest& request)
                 std::string strError;
                 CDynodeBroadcast dnb;
 
-                bool fResult = CDynodeBroadcast::Create(dne.getIp(), dne.getPrivKey(), dne.getTxHash(), dne.getOutputIndex(), strError, dnb);
+                bool fResult =
+                    CDynodeBroadcast::Create(dne.getIp(), dne.getPrivKey(), dne.getTxHash(), dne.getOutputIndex(), strError, dnb);
 
                 int nDoS;
                 if (fResult && !dnodeman.CheckDnbAndUpdateDynodeList(NULL, dnb, nDoS, *g_connman)) {
@@ -365,7 +364,8 @@ UniValue dynode(const JSONRPCRequest& request)
         dnodeman.NotifyDynodeUpdates(*g_connman);
 
         UniValue returnObj(UniValue::VOBJ);
-        returnObj.push_back(Pair("overall", tfm::format("Successfully started %d dynodes, failed to start %d, total %d", nSuccessful, nFailed, nSuccessful + nFailed)));
+        returnObj.push_back(Pair("overall",
+            tfm::format("Successfully started %d dynodes, failed to start %d, total %d", nSuccessful, nFailed, nSuccessful + nFailed)));
         returnObj.push_back(Pair("detail", resultsObj));
 
         return returnObj;
@@ -488,9 +488,9 @@ UniValue dynodelist(const JSONRPCRequest& request)
     if (request.params.size() == 2)
         strFilter = request.params[1].get_str();
 
-    if (request.fHelp || (strMode != "activeseconds" && strMode != "addr" && strMode != "daemon" && strMode != "full" && strMode != "info" && strMode != "json" &&
-                             strMode != "lastseen" && strMode != "lastpaidtime" && strMode != "lastpaidblock" &&
-                             strMode != "protocol" && strMode != "payee" && strMode != "pubkey" &&
+    if (request.fHelp || (strMode != "activeseconds" && strMode != "addr" && strMode != "daemon" && strMode != "full" &&
+                             strMode != "info" && strMode != "json" && strMode != "lastseen" && strMode != "lastpaidtime" &&
+                             strMode != "lastpaidblock" && strMode != "protocol" && strMode != "payee" && strMode != "pubkey" &&
                              strMode != "rank" && strMode != "sentinel" && strMode != "status")) {
         throw std::runtime_error(
             "dynodelist ( \"mode\" \"filter\" )\n"
@@ -552,44 +552,48 @@ UniValue dynodelist(const JSONRPCRequest& request)
                 obj.push_back(Pair(strOutpoint, (int64_t)(dn.lastPing.sigTime - dn.sigTime)));
             } else if (strMode == "addr") {
                 std::string strAddress = dn.addr.ToString();
-                if (strFilter != "" && strAddress.find(strFilter) == std::string::npos &&
-                    strOutpoint.find(strFilter) == std::string::npos)
+                if (strFilter != "" && strAddress.find(strFilter) == std::string::npos && strOutpoint.find(strFilter) == std::string::npos)
                     continue;
                 obj.push_back(Pair(strOutpoint, strAddress));
             } else if (strMode == "daemon") {
                 std::string strDaemon = dn.lastPing.GetDaemonString();
-                if (strFilter != "" && strDaemon.find(strFilter) == std::string::npos &&
-                    strOutpoint.find(strFilter) == std::string::npos)
+                if (strFilter != "" && strDaemon.find(strFilter) == std::string::npos && strOutpoint.find(strFilter) == std::string::npos)
                     continue;
                 obj.push_back(Pair(strOutpoint, strDaemon));
             } else if (strMode == "sentinel") {
                 std::string strSentinel = dn.lastPing.GetSentinelString();
-                if (strFilter != "" && strSentinel.find(strFilter) == std::string::npos &&
-                    strOutpoint.find(strFilter) == std::string::npos)
+                if (strFilter != "" && strSentinel.find(strFilter) == std::string::npos && strOutpoint.find(strFilter) == std::string::npos)
                     continue;
                 obj.push_back(Pair(strOutpoint, strSentinel));
             } else if (strMode == "full") {
                 std::ostringstream streamFull;
-                streamFull << std::setw(18) << dn.GetStatus() << " " << dn.nProtocolVersion << " " << CDynamicAddress(dn.pubKeyCollateralAddress.GetID()).ToString() << " " << (int64_t)dn.lastPing.sigTime << " " << std::setw(8) << (int64_t)(dn.lastPing.sigTime - dn.sigTime) << " " << std::setw(10) << dn.GetLastPaidTime() << " " << std::setw(6) << dn.GetLastPaidBlock() << " " << dn.addr.ToString();
+                streamFull << std::setw(18) << dn.GetStatus() << " " << dn.nProtocolVersion << " "
+                           << CDynamicAddress(dn.pubKeyCollateralAddress.GetID()).ToString() << " " << (int64_t)dn.lastPing.sigTime << " "
+                           << std::setw(8) << (int64_t)(dn.lastPing.sigTime - dn.sigTime) << " " << std::setw(10) << dn.GetLastPaidTime()
+                           << " " << std::setw(6) << dn.GetLastPaidBlock() << " " << dn.addr.ToString();
                 std::string strFull = streamFull.str();
-                if (strFilter != "" && strFull.find(strFilter) == std::string::npos &&
-                    strOutpoint.find(strFilter) == std::string::npos)
+                if (strFilter != "" && strFull.find(strFilter) == std::string::npos && strOutpoint.find(strFilter) == std::string::npos)
                     continue;
                 obj.push_back(Pair(strOutpoint, strFull));
             } else if (strMode == "info") {
                 std::ostringstream streamInfo;
-                streamInfo << std::setw(18) << dn.GetStatus() << " " << dn.nProtocolVersion << " " << CDynamicAddress(dn.pubKeyCollateralAddress.GetID()).ToString() << " " << (int64_t)dn.lastPing.sigTime << " " << std::setw(8) << (int64_t)(dn.lastPing.sigTime - dn.sigTime) << " " << dn.lastPing.GetSentinelString() << " " << (dn.lastPing.fSentinelIsCurrent ? "current" : "expired") << " " << dn.addr.ToString();
+                streamInfo << std::setw(18) << dn.GetStatus() << " " << dn.nProtocolVersion << " "
+                           << CDynamicAddress(dn.pubKeyCollateralAddress.GetID()).ToString() << " " << (int64_t)dn.lastPing.sigTime << " "
+                           << std::setw(8) << (int64_t)(dn.lastPing.sigTime - dn.sigTime) << " " << dn.lastPing.GetSentinelString() << " "
+                           << (dn.lastPing.fSentinelIsCurrent ? "current" : "expired") << " " << dn.addr.ToString();
                 std::string strInfo = streamInfo.str();
-                if (strFilter != "" && strInfo.find(strFilter) == std::string::npos &&
-                    strOutpoint.find(strFilter) == std::string::npos)
+                if (strFilter != "" && strInfo.find(strFilter) == std::string::npos && strOutpoint.find(strFilter) == std::string::npos)
                     continue;
                 obj.push_back(Pair(strOutpoint, strInfo));
             } else if (strMode == "json") {
                 std::ostringstream streamInfo;
-                streamInfo << dn.addr.ToString() << " " << CDynamicAddress(dn.pubKeyCollateralAddress.GetID()).ToString() << " " << dn.GetStatus() << " " << dn.nProtocolVersion << " " << dn.lastPing.nDaemonVersion << " " << dn.lastPing.GetSentinelString() << " " << (dn.lastPing.fSentinelIsCurrent ? "current" : "expired") << " " << (int64_t)dn.lastPing.sigTime << " " << (int64_t)(dn.lastPing.sigTime - dn.sigTime) << " " << dn.GetLastPaidTime() << " " << dn.GetLastPaidBlock();
+                streamInfo << dn.addr.ToString() << " " << CDynamicAddress(dn.pubKeyCollateralAddress.GetID()).ToString() << " "
+                           << dn.GetStatus() << " " << dn.nProtocolVersion << " " << dn.lastPing.nDaemonVersion << " "
+                           << dn.lastPing.GetSentinelString() << " " << (dn.lastPing.fSentinelIsCurrent ? "current" : "expired") << " "
+                           << (int64_t)dn.lastPing.sigTime << " " << (int64_t)(dn.lastPing.sigTime - dn.sigTime) << " "
+                           << dn.GetLastPaidTime() << " " << dn.GetLastPaidBlock();
                 std::string strInfo = streamInfo.str();
-                if (strFilter != "" && strInfo.find(strFilter) == std::string::npos &&
-                    strOutpoint.find(strFilter) == std::string::npos)
+                if (strFilter != "" && strInfo.find(strFilter) == std::string::npos && strOutpoint.find(strFilter) == std::string::npos)
                     continue;
                 UniValue objDN(UniValue::VOBJ);
                 objDN.push_back(Pair("address", dn.addr.ToString()));
@@ -619,8 +623,7 @@ UniValue dynodelist(const JSONRPCRequest& request)
             } else if (strMode == "payee") {
                 CDynamicAddress address(dn.pubKeyCollateralAddress.GetID());
                 std::string strPayee = address.ToString();
-                if (strFilter != "" && strPayee.find(strFilter) == std::string::npos &&
-                    strOutpoint.find(strFilter) == std::string::npos)
+                if (strFilter != "" && strPayee.find(strFilter) == std::string::npos && strOutpoint.find(strFilter) == std::string::npos)
                     continue;
                 obj.push_back(Pair(strOutpoint, strPayee));
             } else if (strMode == "protocol") {
@@ -634,8 +637,7 @@ UniValue dynodelist(const JSONRPCRequest& request)
                 obj.push_back(Pair(strOutpoint, HexStr(dn.pubKeyDynode)));
             } else if (strMode == "status") {
                 std::string strStatus = dn.GetStatus();
-                if (strFilter != "" && strStatus.find(strFilter) == std::string::npos &&
-                    strOutpoint.find(strFilter) == std::string::npos)
+                if (strFilter != "" && strStatus.find(strFilter) == std::string::npos && strOutpoint.find(strFilter) == std::string::npos)
                     continue;
                 obj.push_back(Pair(strOutpoint, strStatus));
             }
@@ -666,12 +668,11 @@ UniValue dynodebroadcast(const JSONRPCRequest& request)
     if (request.params.size() >= 1)
         strCommand = request.params[0].get_str();
 
-    if (request.fHelp ||
-        (
+    if (request.fHelp || (
 #ifdef ENABLE_WALLET
-            strCommand != "create-alias" && strCommand != "create-all" &&
+                             strCommand != "create-alias" && strCommand != "create-all" &&
 #endif // ENABLE_WALLET
-            strCommand != "decode" && strCommand != "relay"))
+                             strCommand != "decode" && strCommand != "relay"))
         throw std::runtime_error(
             "dynodebroadcast \"command\"...\n"
             "Set of commands to create and relay dynode broadcast messages\n"
@@ -716,7 +717,8 @@ UniValue dynodebroadcast(const JSONRPCRequest& request)
                 std::string strError;
                 CDynodeBroadcast dnb;
 
-                bool fResult = CDynodeBroadcast::Create(dne.getIp(), dne.getPrivKey(), dne.getTxHash(), dne.getOutputIndex(), strError, dnb, true);
+                bool fResult =
+                    CDynodeBroadcast::Create(dne.getIp(), dne.getPrivKey(), dne.getTxHash(), dne.getOutputIndex(), strError, dnb, true);
 
                 statusObj.push_back(Pair("result", fResult ? "successful" : "failed"));
                 if (fResult) {
@@ -762,7 +764,8 @@ UniValue dynodebroadcast(const JSONRPCRequest& request)
             std::string strError;
             CDynodeBroadcast dnb;
 
-            bool fResult = CDynodeBroadcast::Create(dne.getIp(), dne.getPrivKey(), dne.getTxHash(), dne.getOutputIndex(), strError, dnb, true);
+            bool fResult =
+                CDynodeBroadcast::Create(dne.getIp(), dne.getPrivKey(), dne.getTxHash(), dne.getOutputIndex(), strError, dnb, true);
 
             UniValue statusObj(UniValue::VOBJ);
             statusObj.push_back(Pair("alias", dne.getAlias()));
@@ -782,7 +785,9 @@ UniValue dynodebroadcast(const JSONRPCRequest& request)
         CDataStream ssVecDnb(SER_NETWORK, PROTOCOL_VERSION);
         ssVecDnb << vecDnb;
         UniValue returnObj(UniValue::VOBJ);
-        returnObj.push_back(Pair("overall", tfm::format("Successfully created broadcast messages for %d dynodes, failed to create %d, total %d", nSuccessful, nFailed, nSuccessful + nFailed)));
+        returnObj.push_back(
+            Pair("overall", tfm::format("Successfully created broadcast messages for %d dynodes, failed to create %d, total %d",
+                                nSuccessful, nFailed, nSuccessful + nFailed)));
         returnObj.push_back(Pair("detail", resultsObj));
         returnObj.push_back(Pair("hex", HexStr(ssVecDnb.begin(), ssVecDnb.end())));
 
@@ -833,7 +838,9 @@ UniValue dynodebroadcast(const JSONRPCRequest& request)
             returnObj.push_back(Pair(dnb.GetHash().ToString(), resultObj));
         }
 
-        returnObj.push_back(Pair("overall", tfm::format("Successfully decoded broadcast messages for %d dynodes, failed to decode %d, total %d", nSuccessful, nFailed, nSuccessful + nFailed)));
+        returnObj.push_back(
+            Pair("overall", tfm::format("Successfully decoded broadcast messages for %d dynodes, failed to decode %d, total %d",
+                                nSuccessful, nFailed, nSuccessful + nFailed)));
 
         return returnObj;
     }
@@ -879,7 +886,9 @@ UniValue dynodebroadcast(const JSONRPCRequest& request)
             returnObj.push_back(Pair(dnb.GetHash().ToString(), resultObj));
         }
 
-        returnObj.push_back(Pair("overall", tfm::format("Successfully relayed broadcast messages for %d dynodes, failed to relay %d, total %d", nSuccessful, nFailed, nSuccessful + nFailed)));
+        returnObj.push_back(
+            Pair("overall", tfm::format("Successfully relayed broadcast messages for %d dynodes, failed to relay %d, total %d", nSuccessful,
+                                nFailed, nSuccessful + nFailed)));
 
         return returnObj;
     }
@@ -890,33 +899,31 @@ UniValue dynodebroadcast(const JSONRPCRequest& request)
 UniValue sentinelping(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() != 1) {
-        throw std::runtime_error(
-            "sentinelping version\n"
-            "\nSentinel ping.\n"
-            "\nArguments:\n"
-            "1. version           (string, required) Sentinel version in the form \"x.x.x\"\n"
-            "\nResult:\n"
-            "state                (boolean) Ping result\n"
-            "\nExamples:\n" +
-            HelpExampleCli("sentinelping", "1.0.2") + HelpExampleRpc("sentinelping", "1.0.2"));
+        throw std::runtime_error("sentinelping version\n"
+                                 "\nSentinel ping.\n"
+                                 "\nArguments:\n"
+                                 "1. version           (string, required) Sentinel version in the form \"x.x.x\"\n"
+                                 "\nResult:\n"
+                                 "state                (boolean) Ping result\n"
+                                 "\nExamples:\n" +
+                                 HelpExampleCli("sentinelping", "1.0.2") + HelpExampleRpc("sentinelping", "1.0.2"));
     }
 
     activeDynode.UpdateSentinelPing(StringVersionToInt(request.params[0].get_str()));
     return true;
 }
 
-static const CRPCCommand commands[] =
-    {
-        //  category                 name                     actor (function)     okSafe argNames
-        //  ---------------------    ----------------------   -------------------  ------ ----
-        /* Dynamic features */
-        {"dynamic", "dynode", &dynode, true, {}},
-        {"dynamic", "dynodelist", &dynodelist, true, {}},
-        {"dynamic", "dynodebroadcast", &dynodebroadcast, true, {}},
-        {"dynamic", "getpoolinfo", &getpoolinfo, true, {}},
-        {"dynamic", "sentinelping", &sentinelping, true, {}},
+static const CRPCCommand commands[] = {
+    //  category                 name                     actor (function)     okSafe argNames
+    //  ---------------------    ----------------------   -------------------  ------ ----
+    /* Dynamic features */
+    {"dynamic", "dynode", &dynode, true, {}},
+    {"dynamic", "dynodelist", &dynodelist, true, {}},
+    {"dynamic", "dynodebroadcast", &dynodebroadcast, true, {}},
+    {"dynamic", "getpoolinfo", &getpoolinfo, true, {}},
+    {"dynamic", "sentinelping", &sentinelping, true, {}},
 #ifdef ENABLE_WALLET
-        {"dynamic", "privatesend", &privatesend, false, {}},
+    {"dynamic", "privatesend", &privatesend, false, {}},
 #endif // ENABLE_WALLET
 };
 

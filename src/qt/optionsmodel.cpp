@@ -1,4 +1,4 @@
-// Cop / config.h) 2016-2018 Duality Blockchain Solutions Developers
+// Copyright (c)2016-2018 Duality Blockchain Solutions Developers
 // Copyright (c) 2014-2018 The Dash Core Developers
 // Copyright (c) 2009-2018 The Bitcoin Developers
 // Copyright (c) 2009-2018 Satoshi Nakamoto
@@ -18,9 +18,9 @@
 #ifdef ENABLE_WALLET
 #include "dynode/config.h"
 #endif
+#include "chain/validation.h" // For DEFAULT_SCRIPTCHECK_THREADS
 #include "init.h"
 #include "net/net.h"
-#include "chain/validation.h" // For DEFAULT_SCRIPTCHECK_THREADS
 #ifdef ENABLE_WALLET
 #include "privatesend/client.h"
 #endif
@@ -34,7 +34,8 @@
 #include <QSettings>
 #include <QStringList>
 
-OptionsModel::OptionsModel(QObject* parent, bool resetSettings) : QAbstractListModel(parent)
+OptionsModel::OptionsModel(QObject* parent, bool resetSettings)
+    : QAbstractListModel(parent)
 {
     Init(resetSettings);
 }
@@ -186,7 +187,8 @@ void OptionsModel::Init(bool resetSettings)
     if (!settings.contains("addrSeparateProxyTor"))
         settings.setValue("addrSeparateProxyTor", "127.0.0.1:9050");
     // Only try to set -onion, if user has enabled fUseSeparateProxyTor
-    if (settings.value("fUseSeparateProxyTor").toBool() && !SoftSetArg("-onion", settings.value("addrSeparateProxyTor").toString().toStdString()))
+    if (settings.value("fUseSeparateProxyTor").toBool() &&
+        !SoftSetArg("-onion", settings.value("addrSeparateProxyTor").toString().toStdString()))
         addOverriddenOption("-onion");
     else if (!settings.value("fUseSeparateProxyTor").toBool() && !GetArg("-onion", "").empty())
         addOverriddenOption("-onion");
@@ -213,10 +215,7 @@ void OptionsModel::Reset()
         GUIUtil::SetStartOnSystemStartup(false);
 }
 
-int OptionsModel::rowCount(const QModelIndex& parent) const
-{
-    return OptionIDRowCount;
-}
+int OptionsModel::rowCount(const QModelIndex& parent) const { return OptionIDRowCount; }
 
 // read QSettings values and return them
 QVariant OptionsModel::data(const QModelIndex& index, int role) const

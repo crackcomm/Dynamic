@@ -177,7 +177,7 @@ DYNAMIC_CORE_H = \
   script/sigcache.h \
   script/sign.h \
   script/standard.h \
-  support/core_io.h \
+  chain/core_io.h \
   chain/memusage.h \
   support/fs.h \
   support/scheduler.h \
@@ -405,8 +405,8 @@ libdynamic_common_a_SOURCES = \
   chain/coins.cpp \
   chain/params.cpp \
   consensus/merkle.cpp \
-  support/core_read.cpp \
-  support/core_write.cpp \
+  chain/core_read.cpp \
+  chain/core_write.cpp \
   support/scheduler.cpp \
   keys/bip39.cpp \
   keys/hdchain.cpp \

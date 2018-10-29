@@ -1,4 +1,4 @@
-// Cop / config.h) 2016-2018 Duality Blockchain Solutions Developers
+// Copyright (c)2016-2018 Duality Blockchain Solutions Developers
 // Copyright (c) 2014-2018 The Dash Core Developers
 // Copyright (c) 2009-2018 The Bitcoin Developers
 // Copyright (c) 2009-2018 Satoshi Nakamoto
@@ -37,10 +37,11 @@
 #include <QSettings>
 #include <QVBoxLayout>
 
-WalletView::WalletView(const PlatformStyle* _platformStyle, QWidget* parent) : QStackedWidget(parent),
-                                                                               clientModel(0),
-                                                                               walletModel(0),
-                                                                               platformStyle(_platformStyle)
+WalletView::WalletView(const PlatformStyle* _platformStyle, QWidget* parent)
+    : QStackedWidget(parent)
+    , clientModel(0)
+    , walletModel(0)
+    , platformStyle(_platformStyle)
 {
     // Create tabs
     overviewPage = new OverviewPage(platformStyle);
@@ -118,9 +119,7 @@ WalletView::WalletView(const PlatformStyle* _platformStyle, QWidget* parent) : Q
     connect(transactionView, SIGNAL(message(QString, QString, unsigned int)), this, SIGNAL(message(QString, QString, unsigned int)));
 }
 
-WalletView::~WalletView()
-{
-}
+WalletView::~WalletView() {}
 
 void WalletView::setDynamicGUI(DynamicGUI* gui)
 {
@@ -135,7 +134,8 @@ void WalletView::setDynamicGUI(DynamicGUI* gui)
         connect(this, SIGNAL(encryptionStatusChanged(int)), gui, SLOT(setEncryptionStatus(int)));
 
         // Pass through transaction notifications
-        connect(this, SIGNAL(incomingTransaction(QString, int, CAmount, QString, QString, QString)), gui, SLOT(incomingTransaction(QString, int, CAmount, QString, QString, QString)));
+        connect(this, SIGNAL(incomingTransaction(QString, int, CAmount, QString, QString, QString)), gui,
+            SLOT(incomingTransaction(QString, int, CAmount, QString, QString, QString)));
 
         // Clicking on the lock icon will open the passphrase dialog
         connect(gui->labelWalletEncryptionIcon, SIGNAL(clicked()), this, SLOT(on_labelWalletEncryptionIcon_clicked()));
@@ -185,8 +185,8 @@ void WalletView::setWalletModel(WalletModel* _walletModel)
         Q_EMIT hdEnabledStatusChanged(walletModel->hdEnabled());
 
         // Balloon pop-up for new transaction
-        connect(_walletModel->getTransactionTableModel(), SIGNAL(rowsInserted(QModelIndex, int, int)),
-            this, SLOT(processNewTransaction(QModelIndex, int, int)));
+        connect(_walletModel->getTransactionTableModel(), SIGNAL(rowsInserted(QModelIndex, int, int)), this,
+            SLOT(processNewTransaction(QModelIndex, int, int)));
 
         // Ask for passphrase if needed
         connect(_walletModel, SIGNAL(requireUnlock(bool)), this, SLOT(unlockWallet(bool)));
@@ -210,10 +210,8 @@ void WalletView::processNewTransaction(const QModelIndex& parent, int start, int
     QSettings settings;
     if (!settings.value("fShowPrivateSendPopups").toBool()) {
         QVariant nType = ttm->data(index, TransactionTableModel::TypeRole);
-        if (nType == TransactionRecord::PrivateSendDenominate ||
-            nType == TransactionRecord::PrivateSendCollateralPayment ||
-            nType == TransactionRecord::PrivateSendMakeCollaterals ||
-            nType == TransactionRecord::PrivateSendCreateDenominations)
+        if (nType == TransactionRecord::PrivateSendDenominate || nType == TransactionRecord::PrivateSendCollateralPayment ||
+            nType == TransactionRecord::PrivateSendMakeCollaterals || nType == TransactionRecord::PrivateSendCreateDenominations)
             return;
     }
 
@@ -226,10 +224,7 @@ void WalletView::processNewTransaction(const QModelIndex& parent, int start, int
     Q_EMIT incomingTransaction(date, walletModel->getOptionsModel()->getDisplayUnit(), amount, type, address, label);
 }
 
-void WalletView::gotoOverviewPage()
-{
-    setCurrentWidget(overviewPage);
-}
+void WalletView::gotoOverviewPage() { setCurrentWidget(overviewPage); }
 
 void WalletView::gotoSendCoinsPage(QString addr)
 {
@@ -239,15 +234,9 @@ void WalletView::gotoSendCoinsPage(QString addr)
         sendCoinsPage->setAddress(addr);
 }
 
-void WalletView::gotoReceiveCoinsPage()
-{
-    setCurrentWidget(receiveCoinsPage);
-}
+void WalletView::gotoReceiveCoinsPage() { setCurrentWidget(receiveCoinsPage); }
 
-void WalletView::gotoHistoryPage()
-{
-    setCurrentWidget(transactionsPage);
-}
+void WalletView::gotoHistoryPage() { setCurrentWidget(transactionsPage); }
 
 void WalletView::gotoDynodePage()
 {
@@ -257,10 +246,7 @@ void WalletView::gotoDynodePage()
     }
 }
 
-void WalletView::gotoMiningPage()
-{
-    setCurrentWidget(miningPage);
-}
+void WalletView::gotoMiningPage() { setCurrentWidget(miningPage); }
 
 void WalletView::gotoSignMessageTab(QString addr)
 {
@@ -286,20 +272,11 @@ void WalletView::gotoVerifyMessageTab(QString addr)
         signVerifyMessageDialog->setAddress_VM(addr);
 }
 
-bool WalletView::handlePaymentRequest(const SendCoinsRecipient& recipient)
-{
-    return sendCoinsPage->handlePaymentRequest(recipient);
-}
+bool WalletView::handlePaymentRequest(const SendCoinsRecipient& recipient) { return sendCoinsPage->handlePaymentRequest(recipient); }
 
-void WalletView::showOutOfSyncWarning(bool fShow)
-{
-    overviewPage->showOutOfSyncWarning(fShow);
-}
+void WalletView::showOutOfSyncWarning(bool fShow) { overviewPage->showOutOfSyncWarning(fShow); }
 
-void WalletView::updateEncryptionStatus()
-{
-    Q_EMIT encryptionStatusChanged(walletModel->getEncryptionStatus());
-}
+void WalletView::updateEncryptionStatus() { Q_EMIT encryptionStatusChanged(walletModel->getEncryptionStatus()); }
 
 void WalletView::encryptWallet(bool status)
 {
@@ -314,9 +291,7 @@ void WalletView::encryptWallet(bool status)
 
 void WalletView::backupWallet()
 {
-    QString filename = GUIUtil::getSaveFileName(this,
-        tr("Backup Wallet"), QString(),
-        tr("Wallet Data (*.dat)"), NULL);
+    QString filename = GUIUtil::getSaveFileName(this, tr("Backup Wallet"), QString(), tr("Wallet Data (*.dat)"), NULL);
 
     if (filename.isEmpty())
         return;
@@ -343,7 +318,8 @@ void WalletView::unlockWallet(bool fForMixingOnly)
         return;
     // Unlock wallet when requested by wallet model
 
-    if (walletModel->getEncryptionStatus() == WalletModel::Locked || walletModel->getEncryptionStatus() == WalletModel::UnlockedForMixingOnly) {
+    if (walletModel->getEncryptionStatus() == WalletModel::Locked ||
+        walletModel->getEncryptionStatus() == WalletModel::UnlockedForMixingOnly) {
         AskPassphraseDialog dlg(fForMixingOnly ? AskPassphraseDialog::UnlockMixing : AskPassphraseDialog::Unlock, this);
         dlg.setModel(walletModel);
         dlg.exec();
@@ -410,13 +386,7 @@ void WalletView::on_labelWalletEncryptionIcon_clicked(bool fForMixingOnly)
     }
 }
 
-void WalletView::requestedSyncWarningInfo()
-{
-    Q_EMIT outOfSyncWarningClicked();
-}
+void WalletView::requestedSyncWarningInfo() { Q_EMIT outOfSyncWarningClicked(); }
 
 /** Update wallet with the sum of the selected transactions */
-void WalletView::trxAmount(QString amount)
-{
-    transactionSum->setText(amount);
-}
+void WalletView::trxAmount(QString amount) { transactionSum->setText(amount); }
