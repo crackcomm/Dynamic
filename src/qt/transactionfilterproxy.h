@@ -8,7 +8,7 @@
 #ifndef DYNAMIC_QT_TRANSACTIONFILTERPROXY_H
 #define DYNAMIC_QT_TRANSACTIONFILTERPROXY_H
 
-#include "amount.h"
+#include "chain/amount.h"
 
 #include <QDateTime>
 #include <QSortFilterProxyModel>

@@ -349,9 +349,8 @@ HEADERS += \
     src/wallet/wallet_ismine.h \
     src/wallet/wallet.h \
     src/wallet/walletdb.h \
-    src/activedynode.h \
-    src/addressindex.h \
-    src/addrman.h \
+    src/dynode/active.h \
+    src/util/addrman.h \
     src/alert.h \
     src/amount.h \
     src/arith_uint256.h \
@@ -371,7 +370,7 @@ HEADERS += \
     src/compat.h \
     src/compressor.h \
     src/core_io.h \
-    src/core_memusage.h \
+    src/chain/memusage.h \
     src/dbwrapper.h \
     src/flat-database.h \
     src/governance-classes.h \
@@ -389,7 +388,7 @@ HEADERS += \
     src/key.h \
     src/keystore.h \
     src/limitedmap.h \
-    src/memusage.h \
+    src/util/memusage.h \
     src/merkleblock.h \
     src/miner.h \
     src/net.h \
@@ -414,8 +413,8 @@ HEADERS += \
     src/dynode-payments.h \
     src/dynode-sync.h \
     src/dynode.h \
-    src/dynodeconfig.h \
-    src/dynodeman.h \
+    src/dynode/config.h \
+    src/dynode/manager.h \
     src/streams.h \
     src/sync.h \
     src/threadsafety.h \
@@ -440,7 +439,7 @@ HEADERS += \
     src/support/lockedpool.h \
     src/messagesigner.h \
     src/qt/modaloverlay.h \
-    src/indirectmap.h \
+    src/support/indirectmap.h \
     src/qt/miningpage.h \
     src/qt/hashrategraphwidget.h
 
@@ -532,7 +531,7 @@ SOURCES += \
     src/wallet/wallet_ismine.cpp \
     src/wallet/wallet.cpp \
     src/wallet/walletdb.cpp \
-    src/activedynode.cpp \
+    src/dynode/active.cpp \
     src/addrman.cpp \
     src/alert.cpp \
     src/amount.cpp \
@@ -591,8 +590,8 @@ SOURCES += \
     src/dynode-payments.cpp \
     src/dynode-sync.cpp \
     src/dynode.cpp \
-    src/dynodeconfig.cpp \
-    src/dynodeman.cpp \
+    src/dynode/config.cpp \
+    src/dynode/manager.cpp \
     src/sync.cpp \
     src/timedata.cpp \
     src/torcontrol.cpp \

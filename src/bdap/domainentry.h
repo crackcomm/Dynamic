@@ -6,12 +6,12 @@
 #define DYNAMIC_BDAP_DOMAINENTRY_H
 
 #include "bdap.h"
-#include "amount.h"
+#include "chain/amount.h"
 #include "consensus/params.h"
 #include "primitives/transaction.h"
 #include "script/script.h"
-#include "serialize.h"
-#include "sync.h"
+#include "support/sync.h"
+#include "util/serialize.h"
 
 #include <univalue.h>
 
@@ -40,46 +40,51 @@ class CTxMemPool;
 
 using namespace BDAP;
 
-namespace BDAP {
-    std::string GetObjectTypeString(unsigned int nObjectType);
-    unsigned int GetObjectTypeInt(BDAP::ObjectType ObjectType);
-    BDAP::ObjectType GetObjectTypeEnum(unsigned int nObjectType);
-}
+namespace BDAP
+{
+std::string GetObjectTypeString(unsigned int nObjectType);
+unsigned int GetObjectTypeInt(BDAP::ObjectType ObjectType);
+BDAP::ObjectType GetObjectTypeEnum(unsigned int nObjectType);
+} // namespace BDAP
 
-class CDomainEntryDefaultParameters {
+class CDomainEntryDefaultParameters
+{
 public:
-    void InitialiseAdminOwners(); //DEFAULT_ADMIN_DOMAIN
+    void InitialiseAdminOwners();  //DEFAULT_ADMIN_DOMAIN
     void InitialisePublicDomain(); //DEFAULT_PUBLIC_DOMAIN
 };
 
 // See LDAP Distinguished Name
-class CDomainEntry {
+class CDomainEntry
+{
 public:
-    static const int CURRENT_VERSION=1;
+    static const int CURRENT_VERSION = 1;
     int nVersion;
     CharString OID; // Canonical Object ID
     //CN=John Smith,OU=Public,DC=BDAP,DC=IO, O=Duality Blockchain Solutions, UID=johnsmith21
-    CharString DomainComponent; // DC. Like DC=bdap.io. required. controls child objects
-    CharString CommonName; // CN. Like CN=John Smith
+    CharString DomainComponent;    // DC. Like DC=bdap.io. required. controls child objects
+    CharString CommonName;         // CN. Like CN=John Smith
     CharString OrganizationalUnit; // OU. Like OU=sales. blank for top level domain directories
-    CharString OrganizationName; // O. Like Duality Blockchain Solutions
-    CharString ObjectID; // UID. Like johnsmith21.  blank for top level domain directories
-    unsigned int nObjectType; // see enum above
-    CharString WalletAddress; // used to send collateral funds for this directory record.
-    int8_t fPublicObject; // public and private visibility is relative to other objects in its domain directory
-    CharString EncryptPublicKey; // used to encrypt data to send to this directory record.
-    CharString LinkAddress; // used to send link requests.  should use a stealth address.
+    CharString OrganizationName;   // O. Like Duality Blockchain Solutions
+    CharString ObjectID;           // UID. Like johnsmith21.  blank for top level domain directories
+    unsigned int nObjectType;      // see enum above
+    CharString WalletAddress;      // used to send collateral funds for this directory record.
+    int8_t fPublicObject;          // public and private visibility is relative to other objects in its domain directory
+    CharString EncryptPublicKey;   // used to encrypt data to send to this directory record.
+    CharString LinkAddress;        // used to send link requests.  should use a stealth address.
 
     uint256 txHash;
 
     unsigned int nHeight;
     uint64_t nExpireTime;
 
-    CDomainEntry() { 
+    CDomainEntry()
+    {
         SetNull();
     }
 
-    CDomainEntry(const CTransactionRef& tx) {
+    CDomainEntry(const CTransactionRef& tx)
+    {
         SetNull();
         UnserializeFromTx(tx);
     }
@@ -106,7 +111,8 @@ public:
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
+    inline void SerializationOp(Stream& s, Operation ser_action)
+    {
         READWRITE(this->nVersion);
         READWRITE(OID);
         READWRITE(DomainComponent);
@@ -124,15 +130,18 @@ public:
         READWRITE(VARINT(nExpireTime));
     }
 
-    inline friend bool operator==(const CDomainEntry &a, const CDomainEntry &b) {
+    inline friend bool operator==(const CDomainEntry& a, const CDomainEntry& b)
+    {
         return (a.OID == b.OID && a.DomainComponent == b.DomainComponent && a.OrganizationalUnit == b.OrganizationalUnit && a.nObjectType == b.nObjectType);
     }
 
-    inline friend bool operator!=(const CDomainEntry &a, const CDomainEntry &b) {
+    inline friend bool operator!=(const CDomainEntry& a, const CDomainEntry& b)
+    {
         return !(a == b);
     }
 
-    inline CDomainEntry operator=(const CDomainEntry &b) {
+    inline CDomainEntry operator=(const CDomainEntry& b)
+    {
         OID = b.OID;
         DomainComponent = b.DomainComponent;
         CommonName = b.CommonName;
@@ -150,10 +159,10 @@ public:
         txHash = b.txHash;
         return *this;
     }
- 
+
     inline bool IsNull() const { return (DomainComponent.empty()); }
-    bool UnserializeFromTx(const CTransactionRef &tx);
-    bool UnserializeFromData(const std::vector<unsigned char> &vchData, const std::vector<unsigned char> &vchHash);
+    bool UnserializeFromTx(const CTransactionRef& tx);
+    bool UnserializeFromData(const std::vector<unsigned char>& vchData, const std::vector<unsigned char>& vchHash);
     void Serialize(std::vector<unsigned char>& vchData);
 
     CDynamicAddress GetWalletAddress() const;
@@ -184,7 +193,7 @@ void ToLowerCase(CharString& vchValue);
 void ToLowerCase(std::string& strValue);
 CAmount GetBDAPFee(const CScript& scriptPubKey);
 bool DecodeBDAPTx(const CTransactionRef& tx, int& op, std::vector<std::vector<unsigned char> >& vvch);
-bool FindBDAPInTx(const CCoinsViewCache &inputs, const CTransaction& tx, std::vector<std::vector<unsigned char> >& vvch);
+bool FindBDAPInTx(const CCoinsViewCache& inputs, const CTransaction& tx, std::vector<std::vector<unsigned char> >& vvch);
 int GetBDAPOpType(const CScript& script);
 int GetBDAPOpType(const CTxOut& out);
 std::string GetBDAPOpTypeString(const CScript& script);
@@ -194,7 +203,7 @@ bool GetBDAPDataScript(const CTransaction& tx, CScript& scriptBDAPData);
 bool IsBDAPOperationOutput(const CTxOut& out);
 int GetBDAPOperationOutIndex(const CTransactionRef& tx);
 int GetBDAPOperationOutIndex(int nHeight, const uint256& txHash);
-bool GetBDAPTransaction(int nHeight, const uint256& hash, CTransactionRef &txOut, const Consensus::Params& consensusParams);
+bool GetBDAPTransaction(int nHeight, const uint256& hash, CTransactionRef& txOut, const Consensus::Params& consensusParams);
 bool GetDomainEntryFromRecipient(const std::vector<CRecipient>& vecSend, CDomainEntry& entry, std::string& strOpType);
 CDynamicAddress GetScriptAddress(const CScript& pubScript);
 int GetBDAPOpCodeFromOutput(const CTxOut& out);

@@ -5,19 +5,19 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "base58.h"
+#include "chain/coins.h"
 #include "clientversion.h"
-#include "coins.h"
 #include "consensus/consensus.h"
 #include "core_io.h"
-#include "keystore.h"
+#include "keys/keystore.h"
 #include "policy/policy.h"
 #include "primitives/transaction.h"
 #include "script/script.h"
 #include "script/sign.h"
-#include "util.h"
-#include "utilmoneystr.h"
-#include "utilstrencodings.h"
+#include "util/base58.h"
+#include "util/moneystr.h"
+#include "util/strencodings.h"
+#include "util/util.h"
 
 #include <univalue.h>
 
@@ -53,11 +53,10 @@ static int AppInitRawTx(int argc, char* argv[])
 
     if (argc < 2 || IsArgSet("-?") || IsArgSet("-h") || IsArgSet("-help")) {
         // First part of help message is specific to this utility
-        std::string strUsage = strprintf(_("%s dynamic-tx utility version"), _(PACKAGE_NAME)) + " " + FormatFullVersion() + "\n\n" +
-                               _("Usage:") + "\n" +
-                               "  dynamic-tx [options] <hex-tx> [commands]  " + _("Update hex-encoded dynamic transaction") + "\n" +
-                               "  dynamic-tx [options] -create [commands]   " + _("Create hex-encoded dynamic transaction") + "\n" +
-                               "\n";
+        std::string strUsage = tfm::format(_("%s dynamic-tx utility version"), _(PACKAGE_NAME)) + " " + FormatFullVersion() + "\n\n" +
+                               _("Usage:") + "\n" + "  dynamic-tx [options] <hex-tx> [commands]  " +
+                               _("Update hex-encoded dynamic transaction") + "\n" + "  dynamic-tx [options] -create [commands]   " +
+                               _("Create hex-encoded dynamic transaction") + "\n" + "\n";
 
         fprintf(stdout, "%s", strUsage.c_str());
 
@@ -77,18 +76,17 @@ static int AppInitRawTx(int argc, char* argv[])
         strUsage += HelpMessageOpt("locktime=N", _("Set TX lock time to N"));
         strUsage += HelpMessageOpt("nversion=N", _("Set TX version to N"));
         strUsage += HelpMessageOpt("outaddr=VALUE:ADDRESS", _("Add address-based output to TX"));
-        strUsage += HelpMessageOpt("outpubkey=VALUE:PUBKEY[:FLAGS]", _("Add pay-to-pubkey output to TX") + ". " +
-                                                                         _("Optionally add the \"S\" flag to wrap the output in a pay-to-script-hash."));
+        strUsage += HelpMessageOpt("outpubkey=VALUE:PUBKEY[:FLAGS]",
+            _("Add pay-to-pubkey output to TX") + ". " + _("Optionally add the \"S\" flag to wrap the output in a pay-to-script-hash."));
         strUsage += HelpMessageOpt("outdata=[VALUE:]DATA", _("Add data-based output to TX"));
-        strUsage += HelpMessageOpt("outscript=VALUE:SCRIPT[:FLAGS]", _("Add raw script output to TX") + ". " +
-                                                                         _("Optionally add the \"S\" flag to wrap the output in a pay-to-script-hash."));
-        strUsage += HelpMessageOpt("outmultisig=VALUE:REQUIRED:PUBKEYS:PUBKEY1:PUBKEY2:....[:FLAGS]", _("Add Pay To n-of-m Multi-sig output to TX. n = REQUIRED, m = PUBKEYS") + ". " +
-                                                                                                          _("Optionally add the \"S\" flag to wrap the output in a pay-to-script-hash."));
-        strUsage += HelpMessageOpt("sign=SIGHASH-FLAGS", _("Add zero or more signatures to transaction") + ". " +
-                                                             _("This command requires JSON registers:") +
-                                                             _("prevtxs=JSON object") + ", " +
-                                                             _("privatekeys=JSON object") + ". " +
-                                                             _("See signrawtransaction docs for format of sighash flags, JSON objects."));
+        strUsage += HelpMessageOpt("outscript=VALUE:SCRIPT[:FLAGS]",
+            _("Add raw script output to TX") + ". " + _("Optionally add the \"S\" flag to wrap the output in a pay-to-script-hash."));
+        strUsage += HelpMessageOpt("outmultisig=VALUE:REQUIRED:PUBKEYS:PUBKEY1:PUBKEY2:....[:FLAGS]",
+            _("Add Pay To n-of-m Multi-sig output to TX. n = REQUIRED, m = PUBKEYS") + ". " +
+                _("Optionally add the \"S\" flag to wrap the output in a pay-to-script-hash."));
+        strUsage += HelpMessageOpt("sign=SIGHASH-FLAGS",
+            _("Add zero or more signatures to transaction") + ". " + _("This command requires JSON registers:") + _("prevtxs=JSON object") +
+                ", " + _("privatekeys=JSON object") + ". " + _("See signrawtransaction docs for format of sighash flags, JSON objects."));
         fprintf(stdout, "%s", strUsage.c_str());
 
         strUsage = HelpMessageGroup(_("Register Commands:"));
@@ -120,9 +118,7 @@ static void RegisterSet(const std::string& strInput)
 {
     // separate NAME:VALUE in string
     size_t pos = strInput.find(':');
-    if ((pos == std::string::npos) ||
-        (pos == 0) ||
-        (pos == (strInput.size() - 1)))
+    if ((pos == std::string::npos) || (pos == 0) || (pos == (strInput.size() - 1)))
         throw std::runtime_error("Register input requires NAME:VALUE");
 
     std::string key = strInput.substr(0, pos);
@@ -135,9 +131,7 @@ static void RegisterLoad(const std::string& strInput)
 {
     // separate NAME:FILENAME in string
     size_t pos = strInput.find(':');
-    if ((pos == std::string::npos) ||
-        (pos == 0) ||
-        (pos == (strInput.size() - 1)))
+    if ((pos == std::string::npos) || (pos == 0) || (pos == (strInput.size() - 1)))
         throw std::runtime_error("Register load requires NAME:FILENAME");
 
     std::string key = strInput.substr(0, pos);
@@ -152,7 +146,7 @@ static void RegisterLoad(const std::string& strInput)
     // load file chunks into one big buffer
     std::string valStr;
     while ((!feof(f)) && (!ferror(f))) {
-        char buf[4096];
+        char buf[4096] = {0};
         int bread = fread(buf, 1, sizeof(buf), f);
         if (bread <= 0)
             break;
@@ -319,7 +313,8 @@ static void MutateTxAddOutMultiSig(CMutableTransaction& tx, const std::string& s
         throw std::runtime_error("incorrect number of multisig pubkeys");
 
     if (required < 1 || required > 20 || numkeys < 1 || numkeys > 20 || numkeys < required)
-        throw std::runtime_error("multisig parameter mismatch. Required " + std::to_string(required) + " of " + std::to_string(numkeys) + "signatures.");
+        throw std::runtime_error(
+            "multisig parameter mismatch. Required " + std::to_string(required) + " of " + std::to_string(numkeys) + "signatures.");
 
     // extract and validate PUBKEYs
     std::vector<CPubKey> pubkeys;
@@ -528,7 +523,8 @@ static void MutateTxSign(CMutableTransaction& tx, const std::string& flagStr)
             if (!prevOut.isObject())
                 throw std::runtime_error("expected prevtxs internal object");
 
-            std::map<std::string, UniValue::VType> types = boost::assign::map_list_of("txid", UniValue::VSTR)("vout", UniValue::VNUM)("scriptPubKey", UniValue::VSTR);
+            std::map<std::string, UniValue::VType> types =
+                boost::assign::map_list_of("txid", UniValue::VSTR)("vout", UniValue::VNUM)("scriptPubKey", UniValue::VSTR);
             if (!prevOut.checkObject(types))
                 throw std::runtime_error("prevtxs internal object typecheck fail");
 
@@ -546,8 +542,7 @@ static void MutateTxSign(CMutableTransaction& tx, const std::string& flagStr)
                 const Coin& coin = view.AccessCoin(out);
                 if (!coin.IsSpent() && coin.out.scriptPubKey != scriptPubKey) {
                     std::string err("Previous output scriptPubKey mismatch:\n");
-                    err = err + ScriptToAsmStr(coin.out.scriptPubKey) + "\nvs:\n" +
-                          ScriptToAsmStr(scriptPubKey);
+                    err = err + ScriptToAsmStr(coin.out.scriptPubKey) + "\nvs:\n" + ScriptToAsmStr(scriptPubKey);
                     throw std::runtime_error(err);
                 }
                 Coin newcoin;
@@ -559,8 +554,7 @@ static void MutateTxSign(CMutableTransaction& tx, const std::string& flagStr)
 
             // if redeemScript given and private keys given,
             // add redeemScript to the tempKeystore so it can be signed:
-            if (scriptPubKey.IsPayToScriptHash() &&
-                prevOut.exists("redeemScript")) {
+            if (scriptPubKey.IsPayToScriptHash() && prevOut.exists("redeemScript")) {
                 UniValue v = prevOut["redeemScript"];
                 std::vector<unsigned char> rsData(ParseHexUV(v, "redeemScript"));
                 CScript redeemScript(rsData.begin(), rsData.end());
@@ -609,14 +603,8 @@ class Secp256k1Init
     ECCVerifyHandle globalVerifyHandle;
 
 public:
-    Secp256k1Init()
-    {
-        ECC_Start();
-    }
-    ~Secp256k1Init()
-    {
-        ECC_Stop();
-    }
+    Secp256k1Init() { ECC_Start(); }
+    ~Secp256k1Init() { ECC_Stop(); }
 };
 
 static void MutateTx(CMutableTransaction& tx, const std::string& command, const std::string& commandVal)
@@ -698,7 +686,7 @@ static void OutputTx(const CTransaction& tx)
 
 static std::string readStdin()
 {
-    char buf[4096];
+    char buf[4096] = {0};
     std::string ret;
 
     while (!feof(stdin)) {
@@ -722,8 +710,7 @@ static int CommandLineRawTx(int argc, char* argv[])
     int nRet = 0;
     try {
         // Skip switches; Permit common stdin convention "-"
-        while (argc > 1 && IsSwitchChar(argv[1][0]) &&
-               (argv[1][1] != 0)) {
+        while (argc > 1 && IsSwitchChar(argv[1][0]) && (argv[1][1] != 0)) {
             argc--;
             argv++;
         }
@@ -797,13 +784,12 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
-    int ret = EXIT_FAILURE;
     try {
-        ret = CommandLineRawTx(argc, argv);
+        return CommandLineRawTx(argc, argv);
     } catch (const std::exception& e) {
         PrintExceptionContinue(&e, "CommandLineRawTx()");
     } catch (...) {
         PrintExceptionContinue(NULL, "CommandLineRawTx()");
     }
-    return ret;
+    return EXIT_FAILURE;
 }

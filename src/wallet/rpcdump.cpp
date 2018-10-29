@@ -5,18 +5,18 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "base58.h"
-#include "chain.h"
+#include "chain/chain.h"
+#include "chain/merkleblock.h"
+#include "chain/validation.h"
 #include "core_io.h"
 #include "init.h"
-#include "merkleblock.h"
-#include "rpcserver.h"
+#include "rpc/server.h"
 #include "script/script.h"
 #include "script/standard.h"
-#include "sync.h"
-#include "util.h"
-#include "utiltime.h"
-#include "validation.h"
+#include "support/sync.h"
+#include "util/base58.h"
+#include "util/time.h"
+#include "util/util.h"
 #include "wallet.h"
 
 #include <univalue.h>
@@ -32,16 +32,12 @@
 void EnsureWalletIsUnlocked();
 bool EnsureWalletIsAvailable(bool avoidException);
 
-std::string static EncodeDumpTime(int64_t nTime)
-{
-    return DateTimeStrFormat("%Y-%m-%dT%H:%M:%SZ", nTime);
-}
+std::string static EncodeDumpTime(int64_t nTime) { return DateTimeStrFormat("%Y-%m-%dT%H:%M:%SZ", nTime); }
 
 int64_t static DecodeDumpTime(const std::string& str)
 {
     static const boost::posix_time::ptime epoch = boost::posix_time::from_time_t(0);
-    static const std::locale loc(std::locale::classic(),
-        new boost::posix_time::time_input_facet("%Y-%m-%dT%H:%M:%SZ"));
+    static const std::locale loc(std::locale::classic(), new boost::posix_time::time_input_facet("%Y-%m-%dT%H:%M:%SZ"));
     std::istringstream iss(str);
     iss.imbue(loc);
     boost::posix_time::ptime ptime(boost::date_time::not_a_date_time);
@@ -70,8 +66,7 @@ std::string DecodeDumpString(const std::string& str)
     for (unsigned int pos = 0; pos < str.length(); pos++) {
         unsigned char c = str[pos];
         if (c == '%' && pos + 2 < str.length()) {
-            c = (((str[pos + 1] >> 6) * 9 + ((str[pos + 1] - '0') & 15)) << 4) |
-                ((str[pos + 2] >> 6) * 9 + ((str[pos + 2] - '0') & 15));
+            c = (((str[pos + 1] >> 6) * 9 + ((str[pos + 1] - '0') & 15)) << 4) | ((str[pos + 2] >> 6) * 9 + ((str[pos + 2] - '0') & 15));
             pos += 2;
         }
         ret << c;
@@ -85,21 +80,19 @@ UniValue importprivkey(const JSONRPCRequest& request)
         return NullUniValue;
 
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 3)
-        throw std::runtime_error(
-            "importprivkey \"dynamicprivkey\" ( \"label\" ) ( rescan )\n"
-            "\nAdds a private key (as returned by dumpprivkey) to your wallet.\n"
-            "\nArguments:\n"
-            "1. \"dynamicprivkey\"   (string, required) The private key (see dumpprivkey)\n"
-            "2. \"label\"            (string, optional, default=\"\") An optional label\n"
-            "3. rescan               (boolean, optional, default=true) Rescan the wallet for transactions\n"
-            "\nNote: This call can take minutes to complete if rescan is true.\n"
-            "\nExamples:\n"
-            "\nDump a private key\n" +
-            HelpExampleCli("dumpprivkey", "\"myaddress\"") +
-            "\nImport the private key with rescan\n" + HelpExampleCli("importprivkey", "\"mykey\"") +
-            "\nImport using a label and without rescan\n" + HelpExampleCli("importprivkey", "\"mykey\" \"testing\" false") +
-            "\nImport using default blank label and without rescan\n" + HelpExampleCli("importprivkey", "\"mykey\" \"\" false") +
-            "\nAs a JSON-RPC call\n" + HelpExampleRpc("importprivkey", "\"mykey\", \"testing\", false"));
+        throw std::runtime_error("importprivkey \"dynamicprivkey\" ( \"label\" rescan )\n"
+                                 "\nAdds a private key (as returned by dumpprivkey) to your wallet.\n"
+                                 "\nArguments:\n"
+                                 "1. \"dynamicprivkey\"   (string, required) The private key (see dumpprivkey)\n"
+                                 "2. \"label\"            (string, optional, default=\"\") An optional label\n"
+                                 "3. rescan               (boolean, optional, default=true) Rescan the wallet for transactions\n"
+                                 "\nNote: This call can take minutes to complete if rescan is true.\n"
+                                 "\nExamples:\n"
+                                 "\nDump a private key\n" +
+                                 HelpExampleCli("dumpprivkey", "\"myaddress\"") + "\nImport the private key with rescan\n" +
+                                 HelpExampleCli("importprivkey", "\"mykey\"") + "\nImport using a label and without rescan\n" +
+                                 HelpExampleCli("importprivkey", "\"mykey\" \"testing\" false") + "\nAs a JSON-RPC call\n" +
+                                 HelpExampleRpc("importprivkey", "\"mykey\", \"testing\", false"));
 
 
     LOCK2(cs_main, pwalletMain->cs_wallet);
@@ -146,7 +139,7 @@ UniValue importprivkey(const JSONRPCRequest& request)
             throw JSONRPCError(RPC_WALLET_ERROR, "Error adding key to wallet");
 
         // whenever a key is imported, we need to scan the whole chain
-        pwalletMain->UpdateTimeFirstKey(1);
+        pwalletMain->nTimeFirstKey = 1; // 0 would be considered 'no value'
 
         if (fRescan) {
             pwalletMain->ScanForWalletTransactions(chainActive.Genesis(), true);
@@ -164,7 +157,7 @@ void ImportScript(const CScript& script, const std::string& strLabel, bool isRed
 
     pwalletMain->MarkDirty();
 
-    if (!pwalletMain->HaveWatchOnly(script) && !pwalletMain->AddWatchOnly(script, 0 /* nCreateTime */))
+    if (!pwalletMain->HaveWatchOnly(script) && !pwalletMain->AddWatchOnly(script))
         throw JSONRPCError(RPC_WALLET_ERROR, "Error adding address to wallet");
 
     if (isRedeemScript) {
@@ -208,9 +201,9 @@ UniValue importaddress(const JSONRPCRequest& request)
             "as change, and not show up in many RPCs.\n"
             "\nExamples:\n"
             "\nImport a script with rescan\n" +
-            HelpExampleCli("importaddress", "\"myscript\"") +
-            "\nImport using a label without rescan\n" + HelpExampleCli("importaddress", "\"myscript\" \"testing\" false") +
-            "\nAs a JSON-RPC call\n" + HelpExampleRpc("importaddress", "\"myscript\", \"testing\", false"));
+            HelpExampleCli("importaddress", "\"myscript\"") + "\nImport using a label without rescan\n" +
+            HelpExampleCli("importaddress", "\"myscript\" \"testing\" false") + "\nAs a JSON-RPC call\n" +
+            HelpExampleRpc("importaddress", "\"myscript\", \"testing\", false"));
 
 
     std::string strLabel = "";
@@ -260,22 +253,24 @@ UniValue importprunedfunds(const JSONRPCRequest& request)
     if (request.fHelp || request.params.size() != 2)
         throw std::runtime_error(
             "importprunedfunds\n"
-            "\nImports funds without rescan. Corresponding address or script must previously be included in wallet. Aimed towards pruned wallets. The end-user is responsible to import additional transactions that subsequently spend the imported outputs or rescan after the point in the blockchain the transaction is included.\n"
+            "\nImports funds without rescan. Corresponding address or script must previously be included in wallet. Aimed towards pruned "
+            "wallets. The end-user is responsible to import additional transactions that subsequently spend the imported outputs or rescan "
+            "after the point in the blockchain the transaction is included.\n"
             "\nArguments:\n"
             "1. \"rawtransaction\" (string, required) A raw transaction in hex funding an already-existing address in wallet\n"
             "2. \"txoutproof\"     (string, required) The hex output from gettxoutproof that contains the transaction\n");
 
-    CMutableTransaction tx;
+    CTransaction tx;
     if (!DecodeHexTx(tx, request.params[0].get_str()))
         throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed");
     uint256 hashTx = tx.GetHash();
-    CWalletTx wtx(pwalletMain, MakeTransactionRef(std::move(tx)));
+    CWalletTx wtx(pwalletMain, tx);
 
     CDataStream ssMB(ParseHexV(request.params[1], "proof"), SER_NETWORK, PROTOCOL_VERSION);
     CMerkleBlock merkleBlock;
     ssMB >> merkleBlock;
 
-    //Search partial merkle tree in proof for our transaction and index in valid block
+    // Search partial merkle tree in proof for our transaction and index in valid block
     std::vector<uint256> vMatch;
     std::vector<unsigned int> vIndex;
     unsigned int txnIndex = 0;
@@ -316,12 +311,14 @@ UniValue removeprunedfunds(const JSONRPCRequest& request)
     if (request.fHelp || request.params.size() != 1)
         throw std::runtime_error(
             "removeprunedfunds \"txid\"\n"
-            "\nDeletes the specified transaction from the wallet. Meant for use with pruned wallets and as a companion to importprunedfunds. This will effect wallet balances.\n"
+            "\nDeletes the specified transaction from the wallet. Meant for use with pruned wallets and as a companion to "
+            "importprunedfunds. This will effect wallet balances.\n"
             "\nArguments:\n"
             "1. \"txid\"           (string, required) The hex-encoded id of the transaction you are deleting\n"
             "\nExamples:\n" +
             HelpExampleCli("removeprunedfunds", "\"a8d0c0184dde994a09ec054286f1ce581bebf46446a512166eae7628734ea0a5\"") +
-            "\nAs a JSON-RPC call\n" + HelpExampleRpc("removprunedfunds", "\"a8d0c0184dde994a09ec054286f1ce581bebf46446a512166eae7628734ea0a5\""));
+            "\nAs a JSON-RPC call\n" +
+            HelpExampleRpc("removprunedfunds", "\"a8d0c0184dde994a09ec054286f1ce581bebf46446a512166eae7628734ea0a5\""));
 
     LOCK2(cs_main, pwalletMain->cs_wallet);
 
@@ -358,9 +355,9 @@ UniValue importpubkey(const JSONRPCRequest& request)
             "\nNote: This call can take minutes to complete if rescan is true.\n"
             "\nExamples:\n"
             "\nImport a public key with rescan\n" +
-            HelpExampleCli("importpubkey", "\"mypubkey\"") +
-            "\nImport using a label without rescan\n" + HelpExampleCli("importpubkey", "\"mypubkey\" \"testing\" false") +
-            "\nAs a JSON-RPC call\n" + HelpExampleRpc("importpubkey", "\"mypubkey\", \"testing\", false"));
+            HelpExampleCli("importpubkey", "\"mypubkey\"") + "\nImport using a label without rescan\n" +
+            HelpExampleCli("importpubkey", "\"mypubkey\" \"testing\" false") + "\nAs a JSON-RPC call\n" +
+            HelpExampleRpc("importpubkey", "\"mypubkey\", \"testing\", false"));
 
 
     std::string strLabel = "";
@@ -402,16 +399,15 @@ UniValue importwallet(const JSONRPCRequest& request)
         return NullUniValue;
 
     if (request.fHelp || request.params.size() != 1)
-        throw std::runtime_error(
-            "importwallet \"filename\"\n"
-            "\nImports keys from a wallet dump file (see dumpwallet).\n"
-            "\nArguments:\n"
-            "1. \"filename\"    (string, required) The wallet file\n"
-            "\nExamples:\n"
-            "\nDump the wallet\n" +
-            HelpExampleCli("dumpwallet", "\"test\"") +
-            "\nImport the wallet\n" + HelpExampleCli("importwallet", "\"test\"") +
-            "\nImport using the json rpc call\n" + HelpExampleRpc("importwallet", "\"test\""));
+        throw std::runtime_error("importwallet \"filename\"\n"
+                                 "\nImports keys from a wallet dump file (see dumpwallet).\n"
+                                 "\nArguments:\n"
+                                 "1. \"filename\"    (string, required) The wallet file\n"
+                                 "\nExamples:\n"
+                                 "\nDump the wallet\n" +
+                                 HelpExampleCli("dumpwallet", "\"test\"") + "\nImport the wallet\n" +
+                                 HelpExampleCli("importwallet", "\"test\"") + "\nImport using the json rpc call\n" +
+                                 HelpExampleRpc("importwallet", "\"test\""));
 
     if (fPruneMode)
         throw JSONRPCError(RPC_WALLET_ERROR, "Importing wallets is disabled in pruned mode");
@@ -482,11 +478,15 @@ UniValue importwallet(const JSONRPCRequest& request)
     }
     file.close();
     pwalletMain->ShowProgress("", 100); // hide progress dialog in GUI
-    pwalletMain->UpdateTimeFirstKey(nTimeBegin);
 
-    CBlockIndex* pindex = chainActive.FindEarliestAtLeast(nTimeBegin - 7200);
+    CBlockIndex* pindex = chainActive.Tip();
+    while (pindex && pindex->pprev && pindex->GetBlockTime() > nTimeBegin - 7200)
+        pindex = pindex->pprev;
 
-    LogPrintf("Rescanning last %i blocks\n", pindex ? chainActive.Height() - pindex->nHeight + 1 : 0);
+    if (!pwalletMain->nTimeFirstKey || nTimeBegin < pwalletMain->nTimeFirstKey)
+        pwalletMain->nTimeFirstKey = nTimeBegin;
+
+    LogPrintf("Rescanning last %i blocks\n", chainActive.Height() - pindex->nHeight + 1);
     pwalletMain->ScanForWalletTransactions(pindex);
     pwalletMain->MarkDirty();
 
@@ -496,150 +496,22 @@ UniValue importwallet(const JSONRPCRequest& request)
     return NullUniValue;
 }
 
-UniValue importelectrumwallet(const JSONRPCRequest& request)
-{
-    if (!EnsureWalletIsAvailable(request.fHelp))
-        return NullUniValue;
-
-    if (request.fHelp || request.params.size() < 1 || request.params.size() > 2)
-        throw std::runtime_error(
-            "importelectrumwallet \"filename\" index\n"
-            "\nImports keys from an Electrum wallet export file (.csv or .json)\n"
-            "\nArguments:\n"
-            "1. \"filename\"    (string, required) The Electrum wallet export file, should be in csv or json format\n"
-            "2. index         (numeric, optional, default=0) Rescan the wallet for transactions starting from this block index\n"
-            "\nExamples:\n"
-            "\nImport the wallet\n" +
-            HelpExampleCli("importelectrumwallet", "\"test.csv\"") + HelpExampleCli("importelectrumwallet", "\"test.json\"") +
-            "\nImport using the json rpc call\n" + HelpExampleRpc("importelectrumwallet", "\"test.csv\"") + HelpExampleRpc("importelectrumwallet", "\"test.json\""));
-
-    if (fPruneMode)
-        throw JSONRPCError(RPC_WALLET_ERROR, "Importing wallets is disabled in pruned mode");
-
-    LOCK2(cs_main, pwalletMain->cs_wallet);
-
-    EnsureWalletIsUnlocked();
-
-    std::ifstream file;
-    std::string strFileName = request.params[0].get_str();
-    size_t nDotPos = strFileName.find_last_of(".");
-    if (nDotPos == std::string::npos)
-        throw JSONRPCError(RPC_INVALID_PARAMETER, "File has no extension, should be .json or .csv");
-
-    std::string strFileExt = strFileName.substr(nDotPos + 1);
-    if (strFileExt != "json" && strFileExt != "csv")
-        throw JSONRPCError(RPC_INVALID_PARAMETER, "File has wrong extension, should be .json or .csv");
-
-    file.open(strFileName.c_str(), std::ios::in | std::ios::ate);
-    if (!file.is_open())
-        throw JSONRPCError(RPC_INVALID_PARAMETER, "Cannot open Electrum wallet export file");
-
-    bool fGood = true;
-
-    int64_t nFilesize = std::max((int64_t)1, (int64_t)file.tellg());
-    file.seekg(0, file.beg);
-
-    pwalletMain->ShowProgress(_("Importing..."), 0); // show progress dialog in GUI
-
-    if (strFileExt == "csv") {
-        while (file.good()) {
-            pwalletMain->ShowProgress("", std::max(1, std::min(99, (int)(((double)file.tellg() / (double)nFilesize) * 100))));
-            std::string line;
-            std::getline(file, line);
-            if (line.empty() || line == "address,private_key")
-                continue;
-            std::vector<std::string> vstr;
-            boost::split(vstr, line, boost::is_any_of(","));
-            if (vstr.size() < 2)
-                continue;
-            CDynamicSecret vchSecret;
-            if (!vchSecret.SetString(vstr[1]))
-                continue;
-            CKey key = vchSecret.GetKey();
-            CPubKey pubkey = key.GetPubKey();
-            assert(key.VerifyPubKey(pubkey));
-            CKeyID keyid = pubkey.GetID();
-            if (pwalletMain->HaveKey(keyid)) {
-                LogPrintf("Skipping import of %s (key already present)\n", CDynamicAddress(keyid).ToString());
-                continue;
-            }
-            LogPrintf("Importing %s...\n", CDynamicAddress(keyid).ToString());
-            if (!pwalletMain->AddKeyPubKey(key, pubkey)) {
-                fGood = false;
-                continue;
-            }
-        }
-    } else {
-        // json
-        char* buffer = new char[nFilesize];
-        file.read(buffer, nFilesize);
-        UniValue data(UniValue::VOBJ);
-        if (!data.read(buffer))
-            throw JSONRPCError(RPC_TYPE_ERROR, "Cannot parse Electrum wallet export file");
-        delete[] buffer;
-
-        std::vector<std::string> vKeys = data.getKeys();
-
-        for (size_t i = 0; i < data.size(); i++) {
-            pwalletMain->ShowProgress("", std::max(1, std::min(99, int(i * 100 / data.size()))));
-            if (!data[vKeys[i]].isStr())
-                continue;
-            CDynamicSecret vchSecret;
-            if (!vchSecret.SetString(data[vKeys[i]].get_str()))
-                continue;
-            CKey key = vchSecret.GetKey();
-            CPubKey pubkey = key.GetPubKey();
-            assert(key.VerifyPubKey(pubkey));
-            CKeyID keyid = pubkey.GetID();
-            if (pwalletMain->HaveKey(keyid)) {
-                LogPrintf("Skipping import of %s (key already present)\n", CDynamicAddress(keyid).ToString());
-                continue;
-            }
-            LogPrintf("Importing %s...\n", CDynamicAddress(keyid).ToString());
-            if (!pwalletMain->AddKeyPubKey(key, pubkey)) {
-                fGood = false;
-                continue;
-            }
-        }
-    }
-    file.close();
-    pwalletMain->ShowProgress("", 100); // hide progress dialog in GUI
-
-    // Whether to perform rescan after import
-    int nStartHeight = 0;
-    if (request.params.size() > 1)
-        nStartHeight = request.params[1].get_int();
-    if (chainActive.Height() < nStartHeight)
-        nStartHeight = chainActive.Height();
-
-    // Assume that electrum wallet was created at that block
-    int nTimeBegin = chainActive[nStartHeight]->GetBlockTime();
-    pwalletMain->UpdateTimeFirstKey(nTimeBegin);
-
-    LogPrintf("Rescanning %i blocks\n", chainActive.Height() - nStartHeight + 1);
-    pwalletMain->ScanForWalletTransactions(chainActive[nStartHeight], true);
-
-    if (!fGood)
-        throw JSONRPCError(RPC_WALLET_ERROR, "Error adding some keys to wallet");
-
-    return NullUniValue;
-}
 UniValue dumpprivkey(const JSONRPCRequest& request)
 {
     if (!EnsureWalletIsAvailable(request.fHelp))
         return NullUniValue;
 
     if (request.fHelp || request.params.size() != 1)
-        throw std::runtime_error(
-            "dumpprivkey \"dynamicaddress\"\n"
-            "\nReveals the private key corresponding to 'dynamicaddress'.\n"
-            "Then the importprivkey can be used with this output\n"
-            "\nArguments:\n"
-            "1. \"dynamicaddress\"   (string, required) The dynamic address for the private key\n"
-            "\nResult:\n"
-            "\"key\"                (string) The private key\n"
-            "\nExamples:\n" +
-            HelpExampleCli("dumpprivkey", "\"myaddress\"") + HelpExampleCli("importprivkey", "\"mykey\"") + HelpExampleRpc("dumpprivkey", "\"myaddress\""));
+        throw std::runtime_error("dumpprivkey \"dynamicaddress\"\n"
+                                 "\nReveals the private key corresponding to 'dynamicaddress'.\n"
+                                 "Then the importprivkey can be used with this output\n"
+                                 "\nArguments:\n"
+                                 "1. \"dynamicaddress\"   (string, required) The dynamic address for the private key\n"
+                                 "\nResult:\n"
+                                 "\"key\"                (string) The private key\n"
+                                 "\nExamples:\n" +
+                                 HelpExampleCli("dumpprivkey", "\"myaddress\"") + HelpExampleCli("importprivkey", "\"mykey\"") +
+                                 HelpExampleRpc("dumpprivkey", "\"myaddress\""));
 
     LOCK2(cs_main, pwalletMain->cs_wallet);
 
@@ -680,23 +552,25 @@ UniValue dumphdinfo(const JSONRPCRequest& request)
 
     EnsureWalletIsUnlocked();
 
+    // add the base58check encoded extended master if the wallet uses HD
     CHDChain hdChainCurrent;
-    if (!pwalletMain->GetHDChain(hdChainCurrent))
-        throw JSONRPCError(RPC_WALLET_ERROR, "This wallet is not a HD wallet.");
+    if (pwalletMain->GetHDChain(hdChainCurrent)) {
+        if (!pwalletMain->GetDecryptedHDChain(hdChainCurrent))
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "Cannot decrypt HD seed");
 
-    if (!pwalletMain->GetDecryptedHDChain(hdChainCurrent))
-        throw JSONRPCError(RPC_INTERNAL_ERROR, "Cannot decrypt HD seed");
+        SecureString ssMnemonic;
+        SecureString ssMnemonicPassphrase;
+        hdChainCurrent.GetMnemonic(ssMnemonic, ssMnemonicPassphrase);
 
-    SecureString ssMnemonic;
-    SecureString ssMnemonicPassphrase;
-    hdChainCurrent.GetMnemonic(ssMnemonic, ssMnemonicPassphrase);
+        UniValue obj(UniValue::VOBJ);
+        obj.push_back(Pair("hdseed", HexStr(hdChainCurrent.GetSeed())));
+        obj.push_back(Pair("mnemonic", ssMnemonic.c_str()));
+        obj.push_back(Pair("mnemonicpassphrase", ssMnemonicPassphrase.c_str()));
 
-    UniValue obj(UniValue::VOBJ);
-    obj.push_back(Pair("hdseed", HexStr(hdChainCurrent.GetSeed())));
-    obj.push_back(Pair("mnemonic", ssMnemonic.c_str()));
-    obj.push_back(Pair("mnemonicpassphrase", ssMnemonicPassphrase.c_str()));
+        return obj;
+    }
 
-    return obj;
+    return NullUniValue;
 }
 
 UniValue dumpwallet(const JSONRPCRequest& request)
@@ -705,13 +579,12 @@ UniValue dumpwallet(const JSONRPCRequest& request)
         return NullUniValue;
 
     if (request.fHelp || request.params.size() != 1)
-        throw std::runtime_error(
-            "dumpwallet \"filename\"\n"
-            "\nDumps all wallet keys in a human-readable format.\n"
-            "\nArguments:\n"
-            "1. \"filename\"    (string, required) The filename\n"
-            "\nExamples:\n" +
-            HelpExampleCli("dumpwallet", "\"test\"") + HelpExampleRpc("dumpwallet", "\"test\""));
+        throw std::runtime_error("dumpwallet \"filename\"\n"
+                                 "\nDumps all wallet keys in a human-readable format.\n"
+                                 "\nArguments:\n"
+                                 "1. \"filename\"    (string, required) The filename\n"
+                                 "\nExamples:\n" +
+                                 HelpExampleCli("dumpwallet", "\"test\"") + HelpExampleRpc("dumpwallet", "\"test\""));
 
     LOCK2(cs_main, pwalletMain->cs_wallet);
 
@@ -722,17 +595,15 @@ UniValue dumpwallet(const JSONRPCRequest& request)
     if (!file.is_open())
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Cannot open wallet dump file");
 
-    std::map<CTxDestination, int64_t> mapKeyBirth;
+    std::map<CKeyID, int64_t> mapKeyBirth;
     std::set<CKeyID> setKeyPool;
     pwalletMain->GetKeyBirthTimes(mapKeyBirth);
     pwalletMain->GetAllReserveKeys(setKeyPool);
 
     // sort time/key pairs
     std::vector<std::pair<int64_t, CKeyID> > vKeyBirth;
-    for (const auto& entry : mapKeyBirth) {
-        if (const CKeyID* keyID = boost::get<CKeyID>(&entry.first)) { // set and test
-            vKeyBirth.push_back(std::make_pair(entry.second, *keyID));
-        }
+    for (std::map<CKeyID, int64_t>::const_iterator it = mapKeyBirth.begin(); it != mapKeyBirth.end(); it++) {
+        vKeyBirth.push_back(std::make_pair(it->second, it->first));
     }
     mapKeyBirth.clear();
     std::sort(vKeyBirth.begin(), vKeyBirth.end());
@@ -740,15 +611,10 @@ UniValue dumpwallet(const JSONRPCRequest& request)
     // produce output
     file << strprintf("# Wallet dump created by Dynamic %s\n", CLIENT_BUILD);
     file << strprintf("# * Created on %s\n", EncodeDumpTime(GetTime()));
-    file << strprintf("# * Best block at time of backup was %i (%s),\n", chainActive.Height(), chainActive.Tip()->GetBlockHash().ToString());
+    file << strprintf(
+        "# * Best block at time of backup was %i (%s),\n", chainActive.Height(), chainActive.Tip()->GetBlockHash().ToString());
     file << strprintf("#   mined on %s\n", EncodeDumpTime(chainActive.Tip()->GetBlockTime()));
     file << "\n";
-
-    UniValue obj(UniValue::VOBJ);
-    obj.push_back(Pair("dynamicversion", CLIENT_BUILD));
-    obj.push_back(Pair("lastblockheight", chainActive.Height()));
-    obj.push_back(Pair("lastblockhash", chainActive.Tip()->GetBlockHash().ToString()));
-    obj.push_back(Pair("lastblocktime", EncodeDumpTime(chainActive.Tip()->GetBlockTime())));
 
     // add the base58check encoded extended master if the wallet uses HD
     CHDChain hdChainCurrent;
@@ -806,21 +672,17 @@ UniValue dumpwallet(const JSONRPCRequest& request)
             } else {
                 file << "change=1";
             }
-            file << strprintf(" # addr=%s%s\n", strAddr, (pwalletMain->mapHdPubKeys.count(keyid) ? " hdkeypath=" + pwalletMain->mapHdPubKeys[keyid].GetKeyPath() : ""));
+            file << strprintf(" # addr=%s%s\n", strAddr,
+                (pwalletMain->mapHdPubKeys.count(keyid) ? " hdkeypath=" + pwalletMain->mapHdPubKeys[keyid].GetKeyPath() : ""));
         }
     }
     file << "\n";
     file << "# End of dump\n";
     file.close();
-
-    std::string strWarning = strprintf(_("%s file contains all private keys from this wallet. Do not share it with anyone!"), request.params[0].get_str().c_str());
-    obj.push_back(Pair("keys", int(vKeyBirth.size())));
-    obj.push_back(Pair("file", request.params[0].get_str().c_str()));
-    obj.push_back(Pair("warning", strWarning));
-    return obj;
+    return NullUniValue;
 }
 
-UniValue ProcessImport(const UniValue& data, const int64_t timestamp)
+UniValue processImport(const UniValue& data)
 {
     try {
         bool success = false;
@@ -840,6 +702,7 @@ UniValue ProcessImport(const UniValue& data, const int64_t timestamp)
         const bool& internal = data.exists("internal") ? data["internal"].get_bool() : false;
         const bool& watchOnly = data.exists("watchonly") ? data["watchonly"].get_bool() : false;
         const std::string& label = data.exists("label") && !internal ? data["label"].get_str() : "";
+        const int64_t& timestamp = data.exists("timestamp") && data["timestamp"].get_int64() > 1 ? data["timestamp"].get_int64() : 1;
 
         bool isScript = scriptPubKey.getType() == UniValue::VSTR;
         bool isP2SH = strRedeemScript.length() > 0;
@@ -901,7 +764,7 @@ UniValue ProcessImport(const UniValue& data, const int64_t timestamp)
 
             pwalletMain->MarkDirty();
 
-            if (!pwalletMain->HaveWatchOnly(redeemScript) && !pwalletMain->AddWatchOnly(redeemScript, timestamp)) {
+            if (!pwalletMain->HaveWatchOnly(redeemScript) && !pwalletMain->AddWatchOnly(redeemScript)) {
                 throw JSONRPCError(RPC_WALLET_ERROR, "Error adding address to wallet");
             }
 
@@ -918,7 +781,7 @@ UniValue ProcessImport(const UniValue& data, const int64_t timestamp)
 
             pwalletMain->MarkDirty();
 
-            if (!pwalletMain->HaveWatchOnly(redeemDestination) && !pwalletMain->AddWatchOnly(redeemDestination, timestamp)) {
+            if (!pwalletMain->HaveWatchOnly(redeemDestination) && !pwalletMain->AddWatchOnly(redeemDestination)) {
                 throw JSONRPCError(RPC_WALLET_ERROR, "Error adding address to wallet");
             }
 
@@ -962,7 +825,9 @@ UniValue ProcessImport(const UniValue& data, const int64_t timestamp)
                         throw JSONRPCError(RPC_WALLET_ERROR, "Error adding key to wallet");
                     }
 
-                    pwalletMain->UpdateTimeFirstKey(timestamp);
+                    if (timestamp < pwalletMain->nTimeFirstKey) {
+                        pwalletMain->nTimeFirstKey = timestamp;
+                    }
                 }
             }
 
@@ -1011,7 +876,7 @@ UniValue ProcessImport(const UniValue& data, const int64_t timestamp)
 
                 pwalletMain->MarkDirty();
 
-                if (!pwalletMain->HaveWatchOnly(pubKeyScript) && !pwalletMain->AddWatchOnly(pubKeyScript, timestamp)) {
+                if (!pwalletMain->HaveWatchOnly(pubKeyScript) && !pwalletMain->AddWatchOnly(pubKeyScript)) {
                     throw JSONRPCError(RPC_WALLET_ERROR, "Error adding address to wallet");
                 }
 
@@ -1029,7 +894,7 @@ UniValue ProcessImport(const UniValue& data, const int64_t timestamp)
 
                 pwalletMain->MarkDirty();
 
-                if (!pwalletMain->HaveWatchOnly(scriptRawPubKey) && !pwalletMain->AddWatchOnly(scriptRawPubKey, timestamp)) {
+                if (!pwalletMain->HaveWatchOnly(scriptRawPubKey) && !pwalletMain->AddWatchOnly(scriptRawPubKey)) {
                     throw JSONRPCError(RPC_WALLET_ERROR, "Error adding address to wallet");
                 }
 
@@ -1090,7 +955,9 @@ UniValue ProcessImport(const UniValue& data, const int64_t timestamp)
                     throw JSONRPCError(RPC_WALLET_ERROR, "Error adding key to wallet");
                 }
 
-                pwalletMain->UpdateTimeFirstKey(timestamp);
+                if (timestamp < pwalletMain->nTimeFirstKey) {
+                    pwalletMain->nTimeFirstKey = timestamp;
+                }
 
                 success = true;
             }
@@ -1103,7 +970,7 @@ UniValue ProcessImport(const UniValue& data, const int64_t timestamp)
 
                 pwalletMain->MarkDirty();
 
-                if (!pwalletMain->HaveWatchOnly(script) && !pwalletMain->AddWatchOnly(script, timestamp)) {
+                if (!pwalletMain->HaveWatchOnly(script) && !pwalletMain->AddWatchOnly(script)) {
                     throw JSONRPCError(RPC_WALLET_ERROR, "Error adding address to wallet");
                 }
 
@@ -1134,48 +1001,29 @@ UniValue ProcessImport(const UniValue& data, const int64_t timestamp)
     }
 }
 
-int64_t GetImportTimestamp(const UniValue& data, int64_t now)
-{
-    if (data.exists("timestamp")) {
-        const UniValue& timestamp = data["timestamp"];
-        if (timestamp.isNum()) {
-            return timestamp.get_int64();
-        } else if (timestamp.isStr() && timestamp.get_str() == "now") {
-            return now;
-        }
-        throw JSONRPCError(RPC_TYPE_ERROR, strprintf("Expected number or \"now\" timestamp value for key. got type %s", uvTypeName(timestamp.type())));
-    }
-    throw JSONRPCError(RPC_TYPE_ERROR, "Missing required timestamp field for key");
-}
-
 UniValue importmulti(const JSONRPCRequest& mainRequest)
 {
     // clang-format off
     if (mainRequest.fHelp || mainRequest.params.size() < 1 || mainRequest.params.size() > 2)
         throw std::runtime_error(
-            "importmulti \"requests\" \"options\"\n\n"
+            "importmulti '[<json import requests>]' '<json options>' \n\n"
             "Import addresses/scripts (with private or public keys, redeem script (P2SH)), rescanning all addresses in one-shot-only (rescan can be disabled via options).\n\n"
             "Arguments:\n"
-            "1. requests     (array, required) Data to be imported\n"
+            "1. request array     (array, required) Data to be imported\n"
             "  [     (array of json objects)\n"
             "    {\n"
             "      \"scriptPubKey\": \"<script>\" | { \"address\":\"<address>\" }, (string / json, required) Type of scriptPubKey (string for script, json for address)\n"
-            "      \"timestamp\": timestamp | \"now\"                        , (integer / string, required) Creation time of the key in seconds since epoch (Jan 1 1970 GMT),\n"
-            "                                                              or the string \"now\" to substitute the current synced blockchain time. The timestamp of the oldest\n"
-            "                                                              key will determine how far back blockchain rescans need to begin for missing wallet transactions.\n"
-            "                                                              \"now\" can be specified to bypass scanning, for keys which are known to never have been used, and\n"
-            "                                                              0 can be specified to scan the entire blockchain. Blocks up to 2 hours before the earliest key\n"
-            "                                                              creation time of all keys being imported by the importmulti call will be scanned.\n"
             "      \"redeemscript\": \"<script>\"                            , (string, optional) Allowed only if the scriptPubKey is a P2SH address or a P2SH scriptPubKey\n"
             "      \"pubkeys\": [\"<pubKey>\", ... ]                         , (array, optional) Array of strings giving pubkeys that must occur in the output or redeemscript\n"
             "      \"keys\": [\"<key>\", ... ]                               , (array, optional) Array of strings giving private keys whose corresponding public keys must occur in the output or redeemscript\n"
             "      \"internal\": <true>                                    , (boolean, optional, default: false) Stating whether matching outputs should be be treated as not incoming payments\n"
             "      \"watchonly\": <true>                                   , (boolean, optional, default: false) Stating whether matching outputs should be considered watched even when they're not spendable, only allowed if keys are empty\n"
             "      \"label\": <label>                                      , (string, optional, default: '') Label to assign to the address (aka account name, for now), only allowed with internal=false\n"
+            "      \"timestamp\": 1454686740,                                (integer, optional, default now) Timestamp\n"
             "    }\n"
             "  ,...\n"
             "  ]\n"
-            "2. options                 (json, optional)\n"
+            "2. json options                 (json, optional)\n"
             "  {\n"
             "     \"rescan\": <false>,         (boolean, optional, default: true) Stating if should rescan the blockchain after all imports\n"
             "  }\n"
@@ -1196,7 +1044,7 @@ UniValue importmulti(const JSONRPCRequest& mainRequest)
 
     const UniValue& requests = mainRequest.params[0];
 
-    //Default options
+    // Default options
     bool fRescan = true;
 
     if (mainRequest.params.size() > 1) {
@@ -1209,12 +1057,6 @@ UniValue importmulti(const JSONRPCRequest& mainRequest)
 
     LOCK2(cs_main, pwalletMain->cs_wallet);
     EnsureWalletIsUnlocked();
-
-    // Verify all timestamps are present before importing any keys.
-    const int64_t now = chainActive.Tip() ? chainActive.Tip()->GetMedianTimePast() : 0;
-    for (const UniValue& data : requests.getValues()) {
-        GetImportTimestamp(data, now);
-    }
 
     bool fRunScan = false;
     const int64_t minimumTimestamp = 1;
@@ -1229,8 +1071,7 @@ UniValue importmulti(const JSONRPCRequest& mainRequest)
     UniValue response(UniValue::VARR);
 
     BOOST_FOREACH (const UniValue& data, requests.getValues()) {
-        const int64_t timestamp = std::max(GetImportTimestamp(data, now), minimumTimestamp);
-        const UniValue result = ProcessImport(data, timestamp);
+        const UniValue result = processImport(data);
         response.push_back(result);
 
         if (!fRescan) {
@@ -1243,40 +1084,22 @@ UniValue importmulti(const JSONRPCRequest& mainRequest)
         }
 
         // Get the lowest timestamp.
+        const int64_t& timestamp =
+            data.exists("timestamp") && data["timestamp"].get_int64() > minimumTimestamp ? data["timestamp"].get_int64() : minimumTimestamp;
+
         if (timestamp < nLowestTimestamp) {
             nLowestTimestamp = timestamp;
         }
     }
 
-    if (fRescan && fRunScan && requests.size()) {
-        CBlockIndex* pindex = nLowestTimestamp > minimumTimestamp ? chainActive.FindEarliestAtLeast(std::max<int64_t>(nLowestTimestamp - 7200, 0)) : chainActive.Genesis();
-        CBlockIndex* scannedRange = nullptr;
+    if (fRescan && fRunScan && requests.size() && nLowestTimestamp <= chainActive.Tip()->GetBlockTime()) {
+        CBlockIndex* pindex = nLowestTimestamp > minimumTimestamp ? chainActive.FindLatestBefore(nLowestTimestamp) : chainActive.Genesis();
+
         if (pindex) {
-            scannedRange = pwalletMain->ScanForWalletTransactions(pindex, true);
+            pwalletMain->ScanForWalletTransactions(pindex, true);
             pwalletMain->ReacceptWalletTransactions();
         }
-
-        if (!scannedRange || scannedRange->nHeight > pindex->nHeight) {
-            std::vector<UniValue> results = response.getValues();
-            response.clear();
-            response.setArray();
-            size_t i = 0;
-            for (const UniValue& request : requests.getValues()) {
-                // If key creation date is within the successfully scanned
-                // range, or if the import result already has an error set, let
-                // the result stand unmodified. Otherwise replace the result
-                // with an error message.
-                if (GetImportTimestamp(request, now) - 7200 >= scannedRange->GetBlockTimeMax() || results.at(i).exists("error")) {
-                    response.push_back(results.at(i));
-                } else {
-                    UniValue result = UniValue(UniValue::VOBJ);
-                    result.pushKV("success", UniValue(false));
-                    result.pushKV("error", JSONRPCError(RPC_MISC_ERROR, strprintf("Failed to rescan before time %d, transactions may be missing.", scannedRange->GetBlockTimeMax())));
-                    response.push_back(std::move(result));
-                }
-                ++i;
-            }
-        }
     }
+
     return response;
 }

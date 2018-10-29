@@ -7,25 +7,24 @@
 
 #include "bdap.h"
 #include "domainentry.h"
-#include "serialize.h"
-#include "uint256.h"
+#include "util/serialize.h"
+#include <uint256.h>
 
 using namespace BDAP;
 
-namespace BDAP {
-    enum AuditType {
-        UNKNOWN = 0,
-        HASH_POINTER_AUDIT = 1
-    };
-    std::string GetAuditTypeString(unsigned int nAuditType);
-}
+namespace BDAP
+{
+enum AuditType { UNKNOWN = 0, HASH_POINTER_AUDIT = 1 };
+std::string GetAuditTypeString(unsigned int nAuditType);
+} // namespace BDAP
 
-class CAuditData {
+class CAuditData
+{
 public:
-    static const int CURRENT_VERSION=1;
+    static const int CURRENT_VERSION = 1;
     int nVersion;
-    CharString OwnerFullPath;  // name of the owner's full domain entry path
-    CharString AuditData; // usually just a hash that points to the document being audited
+    CharString OwnerFullPath; // name of the owner's full domain entry path
+    CharString AuditData;     // usually just a hash that points to the document being audited
     unsigned int nAuditType;
     unsigned int nHeight;
     uint64_t nExpireTime;
@@ -34,11 +33,10 @@ public:
 
     CDomainEntry* OwnerDomainEntry;
 
-    CAuditData() {
-        SetNull();
-    }
+    CAuditData() { SetNull(); }
 
-    CAuditData(const CTransactionRef& tx) {
+    CAuditData(const CTransactionRef& tx)
+    {
         SetNull();
         UnserializeFromTx(tx);
     }
@@ -48,7 +46,7 @@ public:
         nVersion = CAuditData::CURRENT_VERSION;
         OwnerFullPath.clear();
         AuditData.clear();
-        nAuditType = 0; 
+        nAuditType = 0;
         nHeight = 0;
         nExpireTime = 0;
         txHash.SetNull();
@@ -58,7 +56,8 @@ public:
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
+    inline void SerializationOp(Stream& s, Operation ser_action)
+    {
         READWRITE(this->nVersion);
         READWRITE(OwnerFullPath);
         READWRITE(AuditData);
@@ -68,15 +67,15 @@ public:
         READWRITE(txHash);
     }
 
-    inline friend bool operator==(const CAuditData& a, const CAuditData& b) {
+    inline friend bool operator==(const CAuditData& a, const CAuditData& b)
+    {
         return (a.OwnerFullPath == b.OwnerFullPath && a.AuditData == b.AuditData && a.nExpireTime == b.nExpireTime);
     }
 
-    inline friend bool operator!=(const CAuditData& a, const CAuditData& b) {
-        return !(a == b);
-    }
+    inline friend bool operator!=(const CAuditData& a, const CAuditData& b) { return !(a == b); }
 
-    inline CAuditData operator=(const CAuditData& b) {
+    inline CAuditData operator=(const CAuditData& b)
+    {
         OwnerFullPath = b.OwnerFullPath;
         AuditData = b.AuditData;
         nAuditType = b.nAuditType;
@@ -85,7 +84,7 @@ public:
         txHash = b.txHash;
         return *this;
     }
- 
+
     inline bool IsNull() const { return (OwnerFullPath.empty()); }
     void Serialize(std::vector<unsigned char>& vchData);
     bool UnserializeFromData(const std::vector<unsigned char>& vchData, const std::vector<unsigned char>& vchHash);

@@ -10,7 +10,7 @@
 #include "guiutil.h"
 #include "walletmodel.h"
 
-#include "base58.h"
+#include "util/base58.h"
 #include "wallet/wallet.h"
 
 #include <boost/foreach.hpp>

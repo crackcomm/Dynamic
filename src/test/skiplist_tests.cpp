@@ -2,9 +2,9 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "chain.h"
+#include "chain/chain.h"
 #include "test_random.h"
-#include "util.h"
+#include "util/util.h"
 #include "test/test_dynamic.h"
 
 #include <vector>

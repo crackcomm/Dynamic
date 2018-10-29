@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Duality Blockchain Solutions Developers
+// / wrapper.h (c) 2018 Duality Blockchain Solutions Developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -6,7 +6,7 @@
 #define DYNAMIC_BDAP_DOMAINENTRYDB_H
 
 #include "bdap/domainentry.h"
-#include "dbwrapper.h"
+#include "db/wrapper.h"
 
 static CCriticalSection cs_bdap_entry;
 

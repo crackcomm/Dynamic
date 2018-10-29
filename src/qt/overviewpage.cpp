@@ -22,8 +22,8 @@
 
 #include "dynode-sync.h"
 #include "init.h"
-#include "instantsend.h"
-#include "privatesend-client.h"
+#include "chain/instantsend.h"
+#include "privatesend/client.h"
 
 #include <QAbstractItemDelegate>
 #include <QPainter>
@@ -619,7 +619,7 @@ void OverviewPage::togglePrivateSend()
                 QMessageBox::warning(this, tr("PrivateSend"),
                     tr("Wallet is locked and user declined to unlock. Disabling PrivateSend."),
                     QMessageBox::Ok, QMessageBox::Ok);
-                LogPrint("privatesend", "OverviewPage::togglePrivateSend -- Wallet is locked and user declined to unlock. Disabling PrivateSend.\n");
+                LogPrint(BCLog::PRIVATESEND, "OverviewPage::togglePrivateSend -- Wallet is locked and user declined to unlock. Disabling PrivateSend.\n");
                 return;
             }
         }

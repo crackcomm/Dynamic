@@ -3,9 +3,9 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "governance-validators.h"
+#include "governance/validators.h"
 #include "univalue.h"
-#include "utilstrencodings.h"
+#include "util/strencodings.h"
 
 #include "data/proposals_valid.json.h"
 #include "data/proposals_invalid.json.h"

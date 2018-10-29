@@ -6,7 +6,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #if defined(HAVE_CONFIG_H)
-#include "config/dynamic-config.h" /* for USE_QRCODE */
+#include "dynamic-config.h" /* for USE_QRCODE */
 #endif
 
 #include "receiverequestdialog.h"

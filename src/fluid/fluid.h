@@ -3,13 +3,13 @@
 #ifndef FLUID_PROTOCOL_H
 #define FLUID_PROTOCOL_H
 
-#include "amount.h"
-#include "base58.h"
-#include "chain.h"
+#include "chain/amount.h"
+#include "chain/chain.h"
 #include "consensus/validation.h"
-#include "operations.h"
 #include "script/script.h"
-#include "utilstrencodings.h"
+#include "util/base58.h"
+#include "util/operations.h"
+#include "util/strencodings.h"
 
 #include <algorithm>
 #include <stdint.h>
@@ -51,7 +51,10 @@ public:
 
     bool IsGivenKeyMaster(CDynamicAddress inputKey);
 
-    bool CheckFluidOperationScript(const CScript& fluidScriptPubKey, const int64_t timeStamp, std::string& errorMessage, bool fSkipTimeStampCheck = false);
+    bool CheckFluidOperationScript(const CScript& fluidScriptPubKey,
+        const int64_t timeStamp,
+        std::string& errorMessage,
+        bool fSkipTimeStampCheck = false);
     bool CheckIfExistsInMemPool(const CTxMemPool& pool, const CScript& fluidScriptPubKey, std::string& errorMessage);
     bool CheckIfQuorumExists(const std::string consentToken, std::string& message, bool individual = false);
     bool CheckNonScriptQuorum(const std::string consentToken, std::string& message, bool individual = false);
@@ -59,10 +62,17 @@ public:
 
     bool GenericConsentMessage(std::string message, std::string& signedString, CDynamicAddress signer);
     bool GenericParseNumber(const std::string consentToken, const int64_t timeStamp, CAmount& howMuch, bool txCheckPurpose = false);
-    bool GenericVerifyInstruction(const std::string consentToken, CDynamicAddress& signer, std::string& messageTokenKey, int whereToLook = 1);
+    bool GenericVerifyInstruction(const std::string consentToken,
+        CDynamicAddress& signer,
+        std::string& messageTokenKey,
+        int whereToLook = 1);
 
     bool ExtractCheckTimestamp(const std::string consentToken, const int64_t timeStamp);
-    bool ParseMintKey(const int64_t nTime, CDynamicAddress& destination, CAmount& coinAmount, std::string uniqueIdentifier, bool txCheckPurpose = false);
+    bool ParseMintKey(const int64_t nTime,
+        CDynamicAddress& destination,
+        CAmount& coinAmount,
+        std::string uniqueIdentifier,
+        bool txCheckPurpose = false);
     bool ProcessFluidToken(const std::string consentToken, std::vector<std::string>& ptrs, int strVecNo);
 
     bool GetMintingInstructions(const CBlockIndex* pblockindex, CDynamicAddress& toMintAddress, CAmount& mintAmount);

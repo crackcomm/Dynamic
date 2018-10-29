@@ -7,17 +7,18 @@
 
 #include "bdap.h"
 #include "bdap/domainentry.h"
-#include "serialize.h"
-#include "uint256.h"
+#include "util/serialize.h"
+#include <uint256.h>
 
 class CTransaction;
 
-class CEntryCertificate {
+class CEntryCertificate
+{
 public:
-    static const int CURRENT_VERSION=1;
+    static const int CURRENT_VERSION = 1;
     int nVersion;
-    CharString OwnerFullPath;  // name of the owner's full domain entry path
-    CharString Name; // Certificate name
+    CharString OwnerFullPath; // name of the owner's full domain entry path
+    CharString Name;          // Certificate name
     CharString CertificateData;
     CharString AuthorityFullPath;
     CharString AuthoritySignature;
@@ -27,11 +28,10 @@ public:
     CDomainEntry* OwnerDomainEntry;
     CDomainEntry* AuthorityDomainEntry;
 
-    CEntryCertificate() {
-        SetNull();
-    }
+    CEntryCertificate() { SetNull(); }
 
-    CEntryCertificate(const CTransactionRef& tx) {
+    CEntryCertificate(const CTransactionRef& tx)
+    {
         SetNull();
         UnserializeFromTx(tx);
     }
@@ -54,7 +54,8 @@ public:
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
+    inline void SerializationOp(Stream& s, Operation ser_action)
+    {
         READWRITE(this->nVersion);
         READWRITE(OwnerFullPath);
         READWRITE(Name);
@@ -66,15 +67,16 @@ public:
         READWRITE(txHash);
     }
 
-    inline friend bool operator==(const CEntryCertificate &a, const CEntryCertificate &b) {
-        return (a.OwnerFullPath == b.OwnerFullPath && a.Name == b.Name && a.CertificateData == b.CertificateData && a.nExpireTime == b.nExpireTime);
+    inline friend bool operator==(const CEntryCertificate& a, const CEntryCertificate& b)
+    {
+        return (a.OwnerFullPath == b.OwnerFullPath && a.Name == b.Name && a.CertificateData == b.CertificateData &&
+                a.nExpireTime == b.nExpireTime);
     }
 
-    inline friend bool operator!=(const CEntryCertificate &a, const CEntryCertificate &b) {
-        return !(a == b);
-    }
+    inline friend bool operator!=(const CEntryCertificate& a, const CEntryCertificate& b) { return !(a == b); }
 
-    inline CEntryCertificate operator=(const CEntryCertificate &b) {
+    inline CEntryCertificate operator=(const CEntryCertificate& b)
+    {
         OwnerFullPath = b.OwnerFullPath;
         Name = b.Name;
         CertificateData = b.CertificateData;
@@ -85,16 +87,17 @@ public:
         txHash = b.txHash;
         return *this;
     }
- 
+
     inline bool IsNull() const { return (OwnerFullPath.empty()); }
     void Serialize(std::vector<unsigned char>& vchData);
-    bool UnserializeFromData(const std::vector<unsigned char> &vchData, const std::vector<unsigned char> &vchHash);
+    bool UnserializeFromData(const std::vector<unsigned char>& vchData, const std::vector<unsigned char>& vchHash);
     bool UnserializeFromTx(const CTransactionRef& tx);
 
-    bool SelfSignedCertificate() const {
+    bool SelfSignedCertificate() const
+    {
         if (OwnerDomainEntry == nullptr || AuthorityDomainEntry == nullptr)
             return false;
-        
+
         if (OwnerDomainEntry == AuthorityDomainEntry)
             return true;
 

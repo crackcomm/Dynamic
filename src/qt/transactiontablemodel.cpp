@@ -17,10 +17,10 @@
 #include "walletmodel.h"
 
 #include "core_io.h"
-#include "sync.h"
-#include "uint256.h"
-#include "util.h"
-#include "validation.h"
+#include "support/sync.h"
+#include <uint256.h>
+#include "util/util.h"
+#include "chain/validation.h"
 #include "wallet/wallet.h"
 
 #include <QColor>

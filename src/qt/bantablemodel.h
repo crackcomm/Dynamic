@@ -8,7 +8,7 @@
 #ifndef DYNAMIC_QT_BANTABLEMODEL_H
 #define DYNAMIC_QT_BANTABLEMODEL_H
 
-#include "net.h"
+#include "net/net.h"
 
 #include <QAbstractTableModel>
 #include <QStringList>

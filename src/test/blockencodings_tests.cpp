@@ -4,8 +4,8 @@
 
 #include "blockencodings.h"
 #include "consensus/merkle.h"
-#include "chainparams.h"
-#include "random.h"
+#include "chain/params.h"
+#include "util/random.h"
 
 #include "test/test_dynamic.h"
 

@@ -1,11 +1,11 @@
 #ifndef DYNAMIC_TEST_TEST_DYNAMIC_H
 #define DYNAMIC_TEST_TEST_DYNAMIC_H
 
-#include "chainparamsbase.h"
-#include "key.h"
-#include "pubkey.h"
+#include "chain/paramsbase.h"
+#include "keys/key.h"
+#include "keys/pubkey.h"
 #include "txdb.h"
-#include "txmempool.h"
+#include "db/txmempool.h"
 
 #include <boost/filesystem.hpp>
 #include <boost/thread.hpp>
@@ -25,8 +25,8 @@ struct BasicTestingSetup {
  * and wallet (if enabled) setup.
  */
 class CConnman;
-struct TestingSetup: public BasicTestingSetup {
-    CCoinsViewDB *pcoinsdbview;
+struct TestingSetup : public BasicTestingSetup {
+    CCoinsViewDB* pcoinsdbview;
     boost::filesystem::path pathTemp;
     boost::thread_group threadGroup;
     CConnman* connman;
@@ -49,19 +49,18 @@ struct TestChain100Setup : public TestingSetup {
     // Create a new block with just given transactions, coinbase paying to
     // scriptPubKey, and try to add it to the current chain.
     CBlock CreateAndProcessBlock(const std::vector<CMutableTransaction>& txns,
-                                 const CScript& scriptPubKey);
+        const CScript& scriptPubKey);
 
     ~TestChain100Setup();
 
     std::vector<CTransaction> coinbaseTxns; // For convenience, coinbase transactions
-    CKey coinbaseKey; // private/public key needed to spend coinbase transactions
+    CKey coinbaseKey;                       // private/public key needed to spend coinbase transactions
 };
 
 class CTxMemPoolEntry;
 class CTxMemPool;
 
-struct TestMemPoolEntryHelper
-{
+struct TestMemPoolEntryHelper {
     // Default values
     CAmount nFee;
     int64_t nTime;
@@ -72,20 +71,47 @@ struct TestMemPoolEntryHelper
     unsigned int sigOpCount;
     LockPoints lp;
 
-    TestMemPoolEntryHelper() :
-        nFee(0), nTime(0), dPriority(0.0), nHeight(1),
-        hadNoDependencies(false), spendsCoinbase(false), sigOpCount(1) { }
-    
-    CTxMemPoolEntry FromTx(const CMutableTransaction &tx, CTxMemPool *pool = NULL);
-    CTxMemPoolEntry FromTx(const CTransaction &tx, CTxMemPool *pool = NULL);
+    TestMemPoolEntryHelper() : nFee(0), nTime(0), dPriority(0.0), nHeight(1),
+                               hadNoDependencies(false), spendsCoinbase(false), sigOpCount(1) {}
+
+    CTxMemPoolEntry FromTx(const CMutableTransaction& tx, CTxMemPool* pool = NULL);
+    CTxMemPoolEntry FromTx(const CTransaction& tx, CTxMemPool* pool = NULL);
 
     // Change the default value
-    TestMemPoolEntryHelper &Fee(CAmount _fee) { nFee = _fee; return *this; }
-    TestMemPoolEntryHelper &Time(int64_t _time) { nTime = _time; return *this; }
-    TestMemPoolEntryHelper &Priority(double _priority) { dPriority = _priority; return *this; }
-    TestMemPoolEntryHelper &Height(unsigned int _height) { nHeight = _height; return *this; }
-    TestMemPoolEntryHelper &HadNoDependencies(bool _hnd) { hadNoDependencies = _hnd; return *this; }
-    TestMemPoolEntryHelper &SpendsCoinbase(bool _flag) { spendsCoinbase = _flag; return *this; }
-    TestMemPoolEntryHelper &SigOps(unsigned int _sigops) { sigOpCount = _sigops; return *this; }
+    TestMemPoolEntryHelper& Fee(CAmount _fee)
+    {
+        nFee = _fee;
+        return *this;
+    }
+    TestMemPoolEntryHelper& Time(int64_t _time)
+    {
+        nTime = _time;
+        return *this;
+    }
+    TestMemPoolEntryHelper& Priority(double _priority)
+    {
+        dPriority = _priority;
+        return *this;
+    }
+    TestMemPoolEntryHelper& Height(unsigned int _height)
+    {
+        nHeight = _height;
+        return *this;
+    }
+    TestMemPoolEntryHelper& HadNoDependencies(bool _hnd)
+    {
+        hadNoDependencies = _hnd;
+        return *this;
+    }
+    TestMemPoolEntryHelper& SpendsCoinbase(bool _flag)
+    {
+        spendsCoinbase = _flag;
+        return *this;
+    }
+    TestMemPoolEntryHelper& SigOps(unsigned int _sigops)
+    {
+        sigOpCount = _sigops;
+        return *this;
+    }
 };
 #endif // DYNAMIC_TEST_TEST_DYNAMIC_H

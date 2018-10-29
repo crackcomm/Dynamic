@@ -2,14 +2,14 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "addrman.h"
+#include "util/addrman.h"
 #include "test/test_dynamic.h"
 #include <string>
 #include <boost/test/unit_test.hpp>
 
-#include "hash.h"
-#include "netbase.h"
-#include "random.h"
+#include "util/hash.h"
+#include "net/base.h"
+#include "util/random.h"
 
 class CAddrManTest : public CAddrMan
 {

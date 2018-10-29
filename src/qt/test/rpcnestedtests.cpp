@@ -2,17 +2,17 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "rpcnestedtests.h"
+#include "rpc/nestedtests.h"
 
-#include "chainparams.h"
+#include "chain/params.h"
 #include "consensus/validation.h"
-#include "validation.h"
-#include "rpcregister.h"
-#include "rpcserver.h"
-#include "rpcconsole.h"
+#include "chain/validation.h"
+#include "rpc/register.h"
+#include "rpc/server.h"
+#include "rpc/console.h"
 #include "test/testutil.h"
 #include "univalue.h"
-#include "util.h"
+#include "util/util.h"
 
 #include <QDir>
 
@@ -27,7 +27,7 @@ void RPCNestedTests::rpcNestedTests()
     const CChainParams& chainparams = Params();
     RegisterAllCoreRPCCommands(tableRPC);
     ClearDatadirCache();
-    std::string path = QDir::tempPath().toStdString() + "/" + strprintf("test_dynamic_qt_%lu_%i", (unsigned long)GetTime(), (int)(GetRand(100000)));
+    std::string path = QDir::tempPath().toStdString() + "/" + tfm::format("test_dynamic_qt_%lu_%i", (unsigned long)GetTime(), (int)(GetRand(100000)));
     QDir dir(QString::fromStdString(path));
     dir.mkpath(".");
     ForceSetArg("-datadir", path);

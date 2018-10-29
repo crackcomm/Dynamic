@@ -11,8 +11,8 @@
 #include "guiconstants.h"
 #include "guiutil.h"
 
-#include "sync.h"
-#include "validation.h" // for cs_main
+#include "support/sync.h"
+#include "chain/validation.h" // for cs_main
 
 #include <QDebug>
 #include <QList>

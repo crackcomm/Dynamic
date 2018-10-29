@@ -2,13 +2,13 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "key.h"
+#include "keys/key.h"
 
-#include "base58.h"
+#include "util/base58.h"
 #include "script/script.h"
-#include "uint256.h"
-#include "util.h"
-#include "utilstrencodings.h"
+#include <uint256.h>
+#include "util/util.h"
+#include "util/strencodings.h"
 #include "test/test_dynamic.h"
 
 #include <string>

@@ -8,8 +8,8 @@
 #ifndef DYNAMIC_QT_GUIUTIL_H
 #define DYNAMIC_QT_GUIUTIL_H
 
-#include "amount.h"
-#include "miner.h"
+#include "chain/amount.h"
+#include "miner/miner.h"
 
 #include <QEvent>
 #include <QHeaderView>

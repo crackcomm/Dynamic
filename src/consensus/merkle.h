@@ -7,7 +7,7 @@
 
 #include "primitives/block.h"
 #include "primitives/transaction.h"
-#include "uint256.h"
+#include <uint256.h>
 
 #include <stdint.h>
 #include <vector>

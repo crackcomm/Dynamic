@@ -13,7 +13,7 @@
 #include "optionsmodel.h"
 #include "walletmodel.h"
 
-#include "privatesend-client.h"
+#include "privatesend/client.h"
 
 #include <QKeyEvent>
 #include <QMessageBox>

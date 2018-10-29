@@ -2,9 +2,9 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "serialize.h"
-#include "streams.h"
-#include "hash.h"
+#include "util/serialize.h"
+#include "util/streams.h"
+#include "util/hash.h"
 #include "test/test_dynamic.h"
 
 #include <stdint.h>

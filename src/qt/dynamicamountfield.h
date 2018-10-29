@@ -8,7 +8,7 @@
 #ifndef DYNAMIC_QT_DYNAMICAMOUNTFIELD_H
 #define DYNAMIC_QT_DYNAMICAMOUNTFIELD_H
 
-#include "amount.h"
+#include "chain/amount.h"
 
 #include <QWidget>
 

@@ -10,7 +10,7 @@
 
 #include "paymentrequest.pb.h"
 
-#include "base58.h"
+#include "util/base58.h"
 
 #include <openssl/x509.h>
 

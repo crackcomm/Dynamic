@@ -8,7 +8,7 @@
 #ifndef DYNAMIC_VERSIONBITS_H
 #define DYNAMIC_VERSIONBITS_H
 
-#include "chain.h"
+#include "chain/chain.h"
 
 #include <map>
 
@@ -69,8 +69,14 @@ struct VersionBitsCache {
     void Clear();
 };
 
-ThresholdState VersionBitsState(const CBlockIndex* pindexPrev, const Consensus::Params& params, Consensus::DeploymentPos pos, VersionBitsCache& cache);
-int VersionBitsStateSinceHeight(const CBlockIndex* pindexPrev, const Consensus::Params& params, Consensus::DeploymentPos pos, VersionBitsCache& cache);
+ThresholdState VersionBitsState(const CBlockIndex* pindexPrev,
+    const Consensus::Params& params,
+    Consensus::DeploymentPos pos,
+    VersionBitsCache& cache);
+int VersionBitsStateSinceHeight(const CBlockIndex* pindexPrev,
+    const Consensus::Params& params,
+    Consensus::DeploymentPos pos,
+    VersionBitsCache& cache);
 uint32_t VersionBitsMask(const Consensus::Params& params, Consensus::DeploymentPos pos);
 
 #endif // DYNAMIC_VERSIONBITS_H

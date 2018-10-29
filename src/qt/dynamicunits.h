@@ -8,7 +8,7 @@
 #ifndef DYNAMIC_QT_DYNAMICUNITS_H
 #define DYNAMIC_QT_DYNAMICUNITS_H
 
-#include "amount.h"
+#include "chain/amount.h"
 
 #include <QAbstractListModel>
 #include <QString>

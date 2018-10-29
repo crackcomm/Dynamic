@@ -18,7 +18,7 @@
 #include "optionsdialog.h"
 #include "optionsmodel.h"
 #include "platformstyle.h"
-#include "rpcconsole.h"
+#include "rpc/console.h"
 #include "utilitydialog.h"
 #ifdef ENABLE_WALLET
 #include "walletframe.h"
@@ -29,12 +29,12 @@
 #include "macdockiconhandler.h"
 #endif
 
-#include "chainparams.h"
+#include "chain/params.h"
 #include "dynode-sync.h"
 #include "dynodelist.h"
 #include "init.h"
 #include "ui_interface.h"
-#include "util.h"
+#include "util/util.h"
 
 #include <iostream>
 

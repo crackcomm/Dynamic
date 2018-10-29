@@ -2,20 +2,21 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "dbwrapper.h"
-#include "uint256.h"
-#include "random.h"
+#include "db/wrapper.h"
+#include <uint256.h>
+#include "util/random.h"
 #include "test/test_dynamic.h"
 
-#include <boost/assign/std/vector.hpp> // for 'operator+=()'
 #include <boost/assert.hpp>
+#include <boost/assign/std/vector.hpp> // for 'operator+=()'
 #include <boost/test/unit_test.hpp>
-                    
+
 using namespace boost::assign; // bring 'operator+=()' into scope
 using namespace boost::filesystem;
-         
+
 // Test if a string consists entirely of null characters
-bool is_null_key(const std::vector<unsigned char>& key) {
+bool is_null_key(const std::vector<unsigned char>& key)
+{
     bool isnull = true;
 
     for (unsigned int i = 0; i < key.size(); i++)
@@ -23,9 +24,9 @@ bool is_null_key(const std::vector<unsigned char>& key) {
 
     return isnull;
 }
- 
+
 BOOST_FIXTURE_TEST_SUITE(dbwrapper_tests, BasicTestingSetup)
-                       
+
 BOOST_AUTO_TEST_CASE(dbwrapper)
 {
     // Perform tests both obfuscated and non-obfuscated.
@@ -150,24 +151,24 @@ BOOST_AUTO_TEST_CASE(existing_data_no_obfuscate)
     // Now, set up another wrapper that wants to obfuscate the same directory
     CDBWrapper odbw(ph, (1 << 10), false, false, true);
 
-    // Check that the key/val we wrote with unobfuscated wrapper exists and 
+    // Check that the key/val we wrote with unobfuscated wrapper exists and
     // is readable.
     uint256 res2;
     BOOST_CHECK(odbw.Read(key, res2));
     BOOST_CHECK_EQUAL(res2.ToString(), in.ToString());
 
-    BOOST_CHECK(!odbw.IsEmpty()); // There should be existing data
+    BOOST_CHECK(!odbw.IsEmpty());                                       // There should be existing data
     BOOST_CHECK(is_null_key(dbwrapper_private::GetObfuscateKey(odbw))); // The key should be an empty string
 
     uint256 in2 = GetRandHash();
     uint256 res3;
- 
+
     // Check that we can write successfully
     BOOST_CHECK(odbw.Write(key, in2));
     BOOST_CHECK(odbw.Read(key, res3));
     BOOST_CHECK_EQUAL(res3.ToString(), in2.ToString());
 }
-                        
+
 // Ensure that we start obfuscating during a reindex.
 BOOST_AUTO_TEST_CASE(existing_data_reindex)
 {
@@ -188,7 +189,7 @@ BOOST_AUTO_TEST_CASE(existing_data_reindex)
     // Call the destructor to free leveldb LOCK
     delete dbw;
     dbw = nullptr;
-  
+
     // Simulate a -reindex by wiping the existing data store
     CDBWrapper odbw(ph, (1 << 10), false, true, true);
 
@@ -199,7 +200,7 @@ BOOST_AUTO_TEST_CASE(existing_data_reindex)
 
     uint256 in2 = GetRandHash();
     uint256 res3;
- 
+
     // Check that we can write successfully
     BOOST_CHECK(odbw.Write(key, in2));
     BOOST_CHECK(odbw.Read(key, res3));
@@ -210,21 +211,21 @@ BOOST_AUTO_TEST_CASE(iterator_ordering)
 {
     path ph = temp_directory_path() / unique_path();
     CDBWrapper dbw(ph, (1 << 20), true, false, false);
-    for (int x=0x00; x<256; ++x) {
+    for (int x = 0x00; x < 256; ++x) {
         uint8_t key = x;
-        uint32_t value = x*x;
+        uint32_t value = x * x;
         BOOST_CHECK(dbw.Write(key, value));
     }
 
     std::unique_ptr<CDBIterator> it(const_cast<CDBWrapper*>(&dbw)->NewIterator());
-    for (int c=0; c<2; ++c) {
+    for (int c = 0; c < 2; ++c) {
         int seek_start;
         if (c == 0)
             seek_start = 0x00;
         else
             seek_start = 0x80;
         it->Seek((uint8_t)seek_start);
-        for (int x=seek_start; x<256; ++x) {
+        for (int x = seek_start; x < 256; ++x) {
             uint8_t key;
             uint32_t value;
             BOOST_CHECK(it->Valid());
@@ -233,7 +234,7 @@ BOOST_AUTO_TEST_CASE(iterator_ordering)
             BOOST_CHECK(it->GetKey(key));
             BOOST_CHECK(it->GetValue(value));
             BOOST_CHECK_EQUAL(key, x);
-            BOOST_CHECK_EQUAL(value, x*x);
+            BOOST_CHECK_EQUAL(value, x * x);
             it->Next();
         }
         BOOST_CHECK(!it->Valid());
@@ -247,7 +248,8 @@ struct StringContentsSerializer {
     StringContentsSerializer() {}
     StringContentsSerializer(const std::string& inp) : str(inp) {}
 
-    StringContentsSerializer& operator+=(const std::string& s) {
+    StringContentsSerializer& operator+=(const std::string& s)
+    {
         str += s;
         return *this;
     }
@@ -256,7 +258,8 @@ struct StringContentsSerializer {
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
+    inline void SerializationOp(Stream& s, Operation ser_action)
+    {
         if (ser_action.ForRead()) {
             str.clear();
             char c = 0;
@@ -281,19 +284,19 @@ BOOST_AUTO_TEST_CASE(iterator_string_ordering)
 
     path ph = temp_directory_path() / unique_path();
     CDBWrapper dbw(ph, (1 << 20), true, false, false);
-    for (int x=0x00; x<10; ++x) {
+    for (int x = 0x00; x < 10; ++x) {
         for (int y = 0; y < 10; y++) {
             sprintf(buf, "%d", x);
             StringContentsSerializer key(buf);
             for (int z = 0; z < y; z++)
                 key += key;
-            uint32_t value = x*x;
+            uint32_t value = x * x;
             BOOST_CHECK(dbw.Write(key, value));
         }
     }
 
     std::unique_ptr<CDBIterator> it(const_cast<CDBWrapper*>(&dbw)->NewIterator());
-    for (int c=0; c<2; ++c) {
+    for (int c = 0; c < 2; ++c) {
         int seek_start;
         if (c == 0)
             seek_start = 0;
@@ -302,7 +305,7 @@ BOOST_AUTO_TEST_CASE(iterator_string_ordering)
         sprintf(buf, "%d", seek_start);
         StringContentsSerializer seek_key(buf);
         it->Seek(seek_key);
-        for (int x=seek_start; x<10; ++x) {
+        for (int x = seek_start; x < 10; ++x) {
             for (int y = 0; y < 10; y++) {
                 sprintf(buf, "%d", x);
                 std::string exp_key(buf);
@@ -316,14 +319,13 @@ BOOST_AUTO_TEST_CASE(iterator_string_ordering)
                 BOOST_CHECK(it->GetKey(key));
                 BOOST_CHECK(it->GetValue(value));
                 BOOST_CHECK_EQUAL(key.str, exp_key);
-                BOOST_CHECK_EQUAL(value, x*x);
+                BOOST_CHECK_EQUAL(value, x * x);
                 it->Next();
             }
         }
         BOOST_CHECK(!it->Valid());
     }
 }
-
 
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -5,7 +5,7 @@
 #include "modaloverlay.h"
 #include "ui_modaloverlay.h"
 
-#include "chainparams.h"
+#include "chain/params.h"
 #include "guiutil.h"
 
 #include <QPropertyAnimation>

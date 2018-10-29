@@ -11,7 +11,7 @@
 #include "peertablemodel.h"
 #include "trafficgraphdata.h"
 
-#include "net.h"
+#include "net/net.h"
 
 #include <QCompleter>
 #include <QDialog>

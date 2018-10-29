@@ -12,7 +12,7 @@
 #include "optionsmodel.h"
 
 #include "clientversion.h"
-#include "streams.h"
+#include "util/streams.h"
 
 #include <boost/foreach.hpp>
 

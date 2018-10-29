@@ -13,7 +13,7 @@
 #include "guiutil.h"
 #include "init.h"
 #include "ui_interface.h"
-#include "util.h"
+#include "util/util.h"
 #include "version.h"
 #ifdef ENABLE_WALLET
 #include "wallet/wallet.h"
@@ -92,7 +92,7 @@ static void InitMessage(SplashScreen* splash, const std::string& message)
 
 static void ShowProgress(SplashScreen* splash, const std::string& title, int nProgress)
 {
-    InitMessage(splash, title + strprintf("%d", nProgress) + "%");
+    InitMessage(splash, title + tfm::format("%d", nProgress) + "%");
 }
 
 void SplashScreen::setBreakAction(const std::function<void(void)>& action)

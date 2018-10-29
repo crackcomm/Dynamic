@@ -9,9 +9,9 @@
 #define DYNAMIC_WALLET_DB_H
 
 #include "clientversion.h"
-#include "serialize.h"
-#include "streams.h"
-#include "sync.h"
+#include "support/sync.h"
+#include "util/serialize.h"
+#include "util/streams.h"
 #include "version.h"
 
 #include <db_cxx.h>
@@ -40,7 +40,7 @@ private:
 
 public:
     mutable CCriticalSection cs_db;
-    std::unique_ptr<DbEnv> dbenv;
+    DbEnv* dbenv;
     std::map<std::string, int> mapFileUseCount;
     std::map<std::string, Db*> mapDb;
 

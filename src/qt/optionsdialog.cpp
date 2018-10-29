@@ -6,7 +6,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #if defined(HAVE_CONFIG_H)
-#include "config/dynamic-config.h"
+#include "dynamic-config.h"
 #endif
 
 #include "optionsdialog.h"
@@ -14,13 +14,13 @@
 
 #include "dynamicunits.h"
 #include "guiutil.h"
-#include "netbase.h"
+#include "net/base.h"
 #include "optionsmodel.h"
 #include "txdb.h"       // for -dbcache defaults
-#include "validation.h" // for DEFAULT_SCRIPTCHECK_THREADS and MAX_SCRIPTCHECK_THREADS
+#include "chain/validation.h" // for DEFAULT_SCRIPTCHECK_THREADS and MAX_SCRIPTCHECK_THREADS
 
 #ifdef ENABLE_WALLET
-#include "privatesend-client.h"
+#include "privatesend/client.h"
 #include "wallet/wallet.h" // for CWallet::GetRequiredFee()
 #endif
 

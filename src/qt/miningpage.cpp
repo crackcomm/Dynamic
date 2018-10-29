@@ -3,11 +3,11 @@
 
 #include "dynode-sync.h"
 #include "guiutil.h"
-#include "miner.h"
-#include "net.h"
-#include "util.h"
-#include "utiltime.h"
-#include "validation.h"
+#include "miner/miner.h"
+#include "net/net.h"
+#include "util/util.h"
+#include "util/time.h"
+#include "chain/validation.h"
 #include "walletmodel.h"
 
 #include <boost/thread.hpp>
@@ -180,11 +180,11 @@ void MiningPage::StartMiner(bool fGPU)
     if (fGPU) {
         fGPUMinerOn = true;
         nGPUThreads = (int)ui->sliderGPUCores->value();
-        GenerateDynamicsGPU(nGPUThreads, Params(), *g_connman);
+        SetGPUMinerThreads(nGPUThreads);
     } else {
         fCPUMinerOn = true;
         nCPUThreads = (int)ui->sliderCPUCores->value();
-        GenerateDynamicsCPU(nCPUThreads, Params(), *g_connman);
+        SetCPUMinerThreads(nCPUThreads);
     }
     updateUI();
 }

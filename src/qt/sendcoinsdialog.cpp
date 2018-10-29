@@ -18,11 +18,11 @@
 #include "sendcoinsentry.h"
 #include "walletmodel.h"
 
-#include "base58.h"
-#include "privatesend-client.h"
-#include "txmempool.h"
+#include "util/base58.h"
+#include "privatesend/client.h"
+#include "db/txmempool.h"
 #include "ui_interface.h"
-#include "validation.h" // mempool and minRelayTxFee
+#include "chain/validation.h" // mempool and minRelayTxFee
 #include "wallet/coincontrol.h"
 #include "wallet/wallet.h"
 

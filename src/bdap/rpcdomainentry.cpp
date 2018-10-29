@@ -5,11 +5,11 @@
 #include "bdap/domainentry.h"
 #include "bdap/domainentrydb.h"
 #include "core_io.h" // needed for ScriptToAsmStr
-#include "rpcprotocol.h"
-#include "rpcserver.h"
+#include "rpc/protocol.h"
+#include "rpc/server.h"
 #include "primitives/transaction.h"
 #include "wallet/wallet.h"
-#include "validation.h"
+#include "chain/validation.h"
 
 #include <univalue.h>
 

@@ -14,8 +14,8 @@ BinPackParameters: false
 BreakBeforeBinaryOperators: false
 BreakBeforeBraces: Linux
 BreakBeforeTernaryOperators: false
-BreakConstructorInitializersBeforeComma: false
-ColumnLimit:     0
+BreakConstructorInitializersBeforeComma: true
+ColumnLimit: 140
 CommentPragmas:  '^ IWYU pragma:'
 ConstructorInitializerAllOnOneLineOrOnePerLine: false
 ConstructorInitializerIndentWidth: 4

@@ -4,13 +4,13 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #if defined(HAVE_CONFIG_H)
-#include "config/dynamic-config.h"
+#include "dynamic-config.h"
 #endif
 
-#include "chainparams.h"
-#include "key.h"
-#include "rpcnestedtests.h"
-#include "util.h"
+#include "chain/params.h"
+#include "keys/key.h"
+#include "rpc/nestedtests.h"
+#include "util/util.h"
 #include "uritests.h"
 #include "compattests.h"
 #include "trafficgraphdatatests.h"

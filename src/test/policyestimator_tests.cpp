@@ -3,9 +3,9 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "policy/fees.h"
-#include "txmempool.h"
-#include "uint256.h"
-#include "util.h"
+#include "db/txmempool.h"
+#include <uint256.h>
+#include "util/util.h"
 
 #include "test/test_dynamic.h"
 

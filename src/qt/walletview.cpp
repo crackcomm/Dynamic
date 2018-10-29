@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2018 Duality Blockchain Solutions Developers
+// Cop / config.h) 2016-2018 Duality Blockchain Solutions Developers
 // Copyright (c) 2014-2018 The Dash Core Developers
 // Copyright (c) 2009-2018 The Bitcoin Developers
 // Copyright (c) 2009-2018 Satoshi Nakamoto
@@ -24,7 +24,7 @@
 #include "transactionview.h"
 #include "walletmodel.h"
 
-#include "dynodeconfig.h"
+#include "dynode/config.h"
 #include "ui_interface.h"
 
 #include <QAction>

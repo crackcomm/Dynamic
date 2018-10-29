@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "hash.h"
-#include "utilstrencodings.h"
+#include "util/hash.h"
+#include "util/strencodings.h"
 #include "test/test_dynamic.h"
 
 #include <vector>

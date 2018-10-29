@@ -12,19 +12,19 @@
 #include "guiutil.h"
 #include "peertablemodel.h"
 
-#include "alert.h"
-#include "chainparams.h"
+#include "util/alert.h"
+#include "chain/params.h"
 #include "checkpoints.h"
 #include "clientversion.h"
-#include "net.h"
-#include "txmempool.h"
+#include "net/net.h"
+#include "db/txmempool.h"
 #include "ui_interface.h"
-#include "util.h"
-#include "validation.h"
+#include "util/util.h"
+#include "chain/validation.h"
 
 #include "dynode-sync.h"
-#include "dynodeman.h"
-#include "privatesend-client.h"
+#include "dynode/manager.h"
+#include "privatesend/client.h"
 
 #include <stdint.h>
 

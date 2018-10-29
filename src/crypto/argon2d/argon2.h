@@ -19,7 +19,7 @@
 #define ARGON2_H
 
 #if defined(HAVE_CONFIG_H) 
-#include "config/dynamic-config.h" 
+#include "dynamic-config.h" 
 #endif
 
 #include <stdint.h>

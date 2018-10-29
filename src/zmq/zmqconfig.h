@@ -6,7 +6,7 @@
 #define DYNAMIC_ZMQ_ZMQCONFIG_H
 
 #if defined(HAVE_CONFIG_H)
-#include "config/dynamic-config.h"
+#include "dynamic-config.h"
 #endif
 
 #include <stdarg.h>
@@ -19,8 +19,8 @@
 #include "primitives/block.h"
 #include "primitives/transaction.h"
 
-#include "governance-object.h"
-#include "governance-vote.h"
+#include "governance/object.h"
+#include "governance/vote.h"
 
 void zmqError(const char *str);
 

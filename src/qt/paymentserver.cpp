@@ -11,12 +11,12 @@
 #include "guiutil.h"
 #include "optionsmodel.h"
 
-#include "base58.h"
-#include "chainparams.h"
+#include "util/base58.h"
+#include "chain/params.h"
 #include "policy/policy.h"
 #include "ui_interface.h"
-#include "util.h"
-#include "validation.h" // For minRelayTxFee
+#include "util/util.h"
+#include "chain/validation.h" // For minRelayTxFee
 #include "wallet/wallet.h"
 
 #include <cstdlib>

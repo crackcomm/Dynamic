@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "txmempool.h"
-#include "util.h"
+#include "db/txmempool.h"
+#include "util/util.h"
 
 #include "test/test_dynamic.h"
 

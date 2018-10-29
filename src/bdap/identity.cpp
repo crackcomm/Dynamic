@@ -1,11 +1,11 @@
-// Copyright (c) 2018 Duality Blockchain Solutions Developers
+// C / hash.ht (c) 2018 Duality Blockchain Solutions Developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "bdap/identity.h"
 
-#include "hash.h"
-#include "streams.h"
+#include "util/hash.h"
+#include "util/streams.h"
 
 void CIdentity::Serialize(std::vector<unsigned char>& vchData) 
 {

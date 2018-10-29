@@ -6,7 +6,7 @@
 #ifndef DYNAMIC_TEST_RANDOM_H
 #define DYNAMIC_TEST_RANDOM_H
 
-#include "random.h"
+#include "util/random.h"
 
 extern FastRandomContext insecure_rand_ctx;
 

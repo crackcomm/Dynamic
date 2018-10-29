@@ -5,7 +5,7 @@
 #ifndef DYNAMIC_POLICY_RBF_H
 #define DYNAMIC_POLICY_RBF_H
 
-#include "txmempool.h"
+#include "db/txmempool.h"
 
 enum RBFTransactionState {
     RBF_TRANSACTIONSTATE_UNKNOWN,

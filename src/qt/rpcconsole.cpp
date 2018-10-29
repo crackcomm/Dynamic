@@ -4,7 +4,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "rpcconsole.h"
+#include "rpc/console.h"
 #include "ui_rpcconsole.h"
 
 #include "bantablemodel.h"
@@ -12,11 +12,11 @@
 #include "guiutil.h"
 #include "peertablemodel.h"
 
-#include "chainparams.h"
-#include "rpcclient.h"
-#include "rpcserver.h"
-#include "util.h"
-#include "validation.h"
+#include "chain/params.h"
+#include "rpc/client.h"
+#include "rpc/server.h"
+#include "util/util.h"
+#include "chain/validation.h"
 
 #include <univalue.h>
 
@@ -108,14 +108,14 @@ class QtRPCTimerInterface : public RPCTimerInterface
 {
 public:
     ~QtRPCTimerInterface() {}
-    const char* Name() override { return "Qt"; }
-    RPCTimerBase* NewTimer(boost::function<void(void)>& func, int64_t millis) override
+    const char* Name() { return "Qt"; }
+    RPCTimerBase* NewTimer(boost::function<void(void)>& func, int64_t millis)
     {
         return new QtRPCTimerBase(func, millis);
     }
 };
 
-#include "rpcconsole.moc"
+#include "rpc/console.moc"
 
 /**
  * Split shell command line into a list of arguments and execute the command(s).

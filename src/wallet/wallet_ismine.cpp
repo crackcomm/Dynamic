@@ -7,8 +7,8 @@
 
 #include "wallet_ismine.h"
 
-#include "key.h"
-#include "keystore.h"
+#include "keys/key.h"
+#include "keys/keystore.h"
 #include "script/script.h"
 #include "script/sign.h"
 #include "script/standard.h"
@@ -59,7 +59,8 @@ isminetype IsMine(const CKeyStore& keystore, const CScript& scriptPubKey)
         if (keystore.HaveKey(keyID))
             return ISMINE_SPENDABLE;
         break;
-    case TX_SCRIPTHASH: {
+    case TX_SCRIPTHASH:
+    case TX_NAME: {
         CScriptID scriptID = CScriptID(uint160(vSolutions[0]));
         CScript subscript;
         if (keystore.GetCScript(scriptID, subscript)) {

@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "random.h"
-#include "scheduler.h"
+#include "util/random.h"
+#include "support/scheduler.h"
 
 #include "test/test_dynamic.h"
 

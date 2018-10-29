@@ -9,10 +9,10 @@
 #define DYNAMIC_QT_DYNAMICGUI_H
 
 #if defined(HAVE_CONFIG_H)
-#include "config/dynamic-config.h"
+#include "dynamic-config.h"
 #endif
 
-#include "amount.h"
+#include "chain/amount.h"
 
 #include <QLabel>
 #include <QMainWindow>

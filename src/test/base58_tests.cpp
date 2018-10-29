@@ -2,17 +2,17 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "base58.h"
+#include "util/base58.h"
 
 #include "data/base58_encode_decode.json.h"
 #include "data/base58_keys_invalid.json.h"
 #include "data/base58_keys_valid.json.h"
 
-#include "key.h"
+#include "keys/key.h"
 #include "script/script.h"
-#include "uint256.h"
-#include "util.h"
-#include "utilstrencodings.h"
+#include <uint256.h>
+#include "util/util.h"
+#include "util/strencodings.h"
 #include "test/test_dynamic.h"
 
 #include <boost/foreach.hpp>

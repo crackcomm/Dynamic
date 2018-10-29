@@ -11,8 +11,8 @@
 #include "guiconstants.h"
 #include "guiutil.h"
 
-#include "sync.h"
-#include "utiltime.h"
+#include "support/sync.h"
+#include "util/time.h"
 
 #include <QDebug>
 #include <QList>

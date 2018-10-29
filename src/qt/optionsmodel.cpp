@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2018 Duality Blockchain Solutions Developers
+// Cop / config.h) 2016-2018 Duality Blockchain Solutions Developers
 // Copyright (c) 2014-2018 The Dash Core Developers
 // Copyright (c) 2009-2018 The Bitcoin Developers
 // Copyright (c) 2009-2018 Satoshi Nakamoto
@@ -6,7 +6,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #if defined(HAVE_CONFIG_H)
-#include "config/dynamic-config.h"
+#include "dynamic-config.h"
 #endif
 
 #include "optionsmodel.h"
@@ -14,16 +14,15 @@
 #include "dynamicunits.h"
 #include "guiutil.h"
 
-#include "amount.h"
+#include "chain/amount.h"
 #ifdef ENABLE_WALLET
-#include "dynodeconfig.h"
+#include "dynode/config.h"
 #endif
 #include "init.h"
-#include "net.h"
-#include "netbase.h"
-#include "validation.h" // For DEFAULT_SCRIPTCHECK_THREADS
+#include "net/net.h"
+#include "chain/validation.h" // For DEFAULT_SCRIPTCHECK_THREADS
 #ifdef ENABLE_WALLET
-#include "privatesend-client.h"
+#include "privatesend/client.h"
 #endif
 #include "txdb.h" // for -dbcache defaults
 #ifdef ENABLE_WALLET

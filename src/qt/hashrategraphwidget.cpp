@@ -6,7 +6,7 @@
 #include <qt/hashrategraphwidget.h>
 
 #include "guiutil.h"
-#include "util.h"
+#include "util/util.h"
 
 #include <QColor>
 #include <QPainter>

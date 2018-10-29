@@ -8,8 +8,8 @@
 #ifndef DYNAMIC_QT_TRANSACTIONRECORD_H
 #define DYNAMIC_QT_TRANSACTIONRECORD_H
 
-#include "amount.h"
-#include "uint256.h"
+#include "chain/amount.h"
+#include <uint256.h>
 
 #include <QList>
 #include <QString>

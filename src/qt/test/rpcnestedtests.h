@@ -9,7 +9,7 @@
 #include <QTest>
 
 #include "txdb.h"
-#include "txmempool.h"
+#include "db/txmempool.h"
 
 class RPCNestedTests : public QObject
 {

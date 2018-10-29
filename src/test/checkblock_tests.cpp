@@ -2,17 +2,17 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "chain/validation.h" // For CheckBlock
 #include "clientversion.h"
 #include "consensus/validation.h"
-#include "validation.h" // For CheckBlock
 #include "primitives/block.h"
 #include "test/test_dynamic.h"
-#include "utiltime.h"
+#include "util/time.h"
 
 #include <cstdio>
 
-#include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
+#include <boost/filesystem/util/operations.hpp>
 #include <boost/test/unit_test.hpp>
 
 
@@ -23,18 +23,19 @@ bool read_block(const std::string& filename, CBlock& block)
     namespace fs = boost::filesystem;
     fs::path testFile = fs::current_path() / "data" / filename;
 #ifdef TEST_DATA_DIR
-    if (!fs::exists(testFile))
-    {
+    if (!fs::exists(testFile)) {
         testFile = fs::path(BOOST_PP_STRINGIZE(TEST_DATA_DIR)) / filename;
     }
 #endif
     FILE* fp = fopen(testFile.string().c_str(), "rb");
-    if (!fp) return false;
+    if (!fp)
+        return false;
 
     fseek(fp, 8, SEEK_SET); // skip msgheader/size
 
     CAutoFile filein(fp, SER_DISK, CLIENT_VERSION);
-    if (filein.IsNull()) return false;
+    if (filein.IsNull())
+        return false;
 
     filein >> block;
 

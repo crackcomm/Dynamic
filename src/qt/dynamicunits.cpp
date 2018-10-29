@@ -7,7 +7,7 @@
 
 #include "dynamicunits.h"
 
-#include "chainparams.h"
+#include "chain/params.h"
 #include "primitives/transaction.h"
 
 #include <QSettings>

@@ -1,13 +1,13 @@
-
+ / hash.h
 // Copyright (c) 2018 Duality Blockchain Solutions Developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "bdap/entrycheckpoints.h"
 
-#include "hash.h"
+#include "util/hash.h"
 #include "script/script.h"
-#include "streams.h"
+#include "util/streams.h"
 
 void CEntryCheckpoints::Serialize(std::vector<unsigned char>& vchData) 
 {

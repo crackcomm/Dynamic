@@ -2,12 +2,12 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "chain.h"
-#include "chainparams.h"
-#include "pow.h"
-#include "random.h"
-#include "util.h"
+#include "chain/chain.h"
+#include "chain/params.h"
+#include "chain/pow.h"
+#include "util/random.h"
 #include "test/test_dynamic.h"
+#include "util/util.h"
 
 #include <boost/test/unit_test.hpp>
 
@@ -21,10 +21,10 @@ BOOST_AUTO_TEST_CASE(get_next_work)
 
     CBlockIndex pindexLast;
     pindexLast.nHeight = 123456;
-    pindexLast.nTime = 1408732489;  // Block #123456
+    pindexLast.nTime = 1408732489; // Block #123456
     pindexLast.nBits = 0x1b1418d4;
     CBlockHeader pblock;
-    pblock.nTime = 1408732505; // Block #123457
+    pblock.nTime = 1408732505;                                                        // Block #123457
     BOOST_CHECK_EQUAL(GetNextWorkRequired(&pindexLast, &pblock, params), 0x1b06b2f1); // Block #123457 has 0x1d00d86a
 }
 
@@ -85,9 +85,9 @@ BOOST_AUTO_TEST_CASE(GetBlockProofEquivalentTime_test)
     }
 
     for (int j = 0; j < 1000; j++) {
-        CBlockIndex *p1 = &blocks[GetRand(10000)];
-        CBlockIndex *p2 = &blocks[GetRand(10000)];
-        CBlockIndex *p3 = &blocks[GetRand(10000)];
+        CBlockIndex* p1 = &blocks[GetRand(10000)];
+        CBlockIndex* p2 = &blocks[GetRand(10000)];
+        CBlockIndex* p3 = &blocks[GetRand(10000)];
 
         int64_t tdiff = GetBlockProofEquivalentTime(*p1, *p2, *p3, params);
         BOOST_CHECK_EQUAL(tdiff, p1->GetBlockTime() - p2->GetBlockTime());

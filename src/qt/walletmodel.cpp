@@ -15,16 +15,16 @@
 #include "recentrequeststablemodel.h"
 #include "transactiontablemodel.h"
 
-#include "base58.h"
-#include "instantsend.h"
-#include "keystore.h"
-#include "net.h" // for g_connman
-#include "privatesend-client.h"
-#include "spork.h"
-#include "sync.h"
+#include "util/base58.h"
+#include "chain/instantsend.h"
+#include "keys/keystore.h"
+#include "net/net.h" // for g_connman
+#include "privatesend/client.h"
+#include "chain/spork.h"
+#include "support/sync.h"
 #include "ui_interface.h"
-#include "util.h" // for GetBoolArg
-#include "validation.h"
+#include "util/util.h" // for GetBoolArg
+#include "chain/validation.h"
 #include "wallet/wallet.h"
 #include "wallet/walletdb.h" // for BackupWallet
 

@@ -8,14 +8,15 @@
 #include "bdap.h"
 #include "domainentry.h"
 #include "primitives/transaction.h"
-#include "serialize.h"
-#include "uint256.h"
+#include "util/serialize.h"
+#include <uint256.h>
 
-class CIdentity {
+class CIdentity
+{
 public:
-    static const int CURRENT_VERSION=1;
+    static const int CURRENT_VERSION = 1;
     int nVersion;
-    CharString OwnerFullPath;  // name of the owner's full domain entry path
+    CharString OwnerFullPath; // name of the owner's full domain entry path
     CharString VerificationData;
     unsigned int nHeight;
 
@@ -23,11 +24,10 @@ public:
 
     CDomainEntry* OwnerDomainEntry;
 
-    CIdentity() {
-        SetNull();
-    }
+    CIdentity() { SetNull(); }
 
-    CIdentity(const CTransactionRef& tx) {
+    CIdentity(const CTransactionRef& tx)
+    {
         SetNull();
         UnserializeFromTx(tx);
     }
@@ -45,7 +45,8 @@ public:
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
+    inline void SerializationOp(Stream& s, Operation ser_action)
+    {
         READWRITE(this->nVersion);
         READWRITE(OwnerFullPath);
         READWRITE(VerificationData);
@@ -53,33 +54,34 @@ public:
         READWRITE(txHash);
     }
 
-    inline friend bool operator==(const CIdentity& a, const CIdentity& b) {
+    inline friend bool operator==(const CIdentity& a, const CIdentity& b)
+    {
         return (a.OwnerFullPath == b.OwnerFullPath && a.VerificationData == b.VerificationData);
     }
 
-    inline friend bool operator!=(const CIdentity& a, const CIdentity& b) {
-        return !(a == b);
-    }
+    inline friend bool operator!=(const CIdentity& a, const CIdentity& b) { return !(a == b); }
 
-    inline CIdentity operator=(const CIdentity& b) {
+    inline CIdentity operator=(const CIdentity& b)
+    {
         OwnerFullPath = b.OwnerFullPath;
         VerificationData = b.VerificationData;
         nHeight = b.nHeight;
         txHash = b.txHash;
         return *this;
     }
- 
+
     inline bool IsNull() const { return (OwnerFullPath.empty()); }
     void Serialize(std::vector<unsigned char>& vchData);
     bool UnserializeFromData(const std::vector<unsigned char>& vchData, const std::vector<unsigned char>& vchHash);
     bool UnserializeFromTx(const CTransactionRef& tx);
 };
 
-class CIdentityVerification {
+class CIdentityVerification
+{
 public:
-    static const int CURRENT_VERSION=1;
+    static const int CURRENT_VERSION = 1;
     int nVersion;
-    CharString VerifierFullPath;  // name of the verifier's full domain entry path
+    CharString VerifierFullPath; // name of the verifier's full domain entry path
     CIdentity Identity;
     CharString VerificationData;
     unsigned int nHeight;
@@ -89,11 +91,10 @@ public:
 
     CDomainEntry* VerifierDomainEntry;
 
-    CIdentityVerification() {
-        SetNull();
-    }
+    CIdentityVerification() { SetNull(); }
 
-    CIdentityVerification(const CTransactionRef& tx) {
+    CIdentityVerification(const CTransactionRef& tx)
+    {
         SetNull();
         UnserializeFromTx(tx);
     }
@@ -113,7 +114,8 @@ public:
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
+    inline void SerializationOp(Stream& s, Operation ser_action)
+    {
         READWRITE(this->nVersion);
         READWRITE(VerifierFullPath);
         READWRITE(Identity);
@@ -123,15 +125,16 @@ public:
         READWRITE(txHash);
     }
 
-    inline friend bool operator==(const CIdentityVerification& a, const CIdentityVerification& b) {
-        return (a.VerifierFullPath == b.VerifierFullPath && a.Identity == b.Identity &&  a.VerificationData == b.VerificationData && a.nExpireTime == b.nExpireTime);
+    inline friend bool operator==(const CIdentityVerification& a, const CIdentityVerification& b)
+    {
+        return (a.VerifierFullPath == b.VerifierFullPath && a.Identity == b.Identity && a.VerificationData == b.VerificationData &&
+                a.nExpireTime == b.nExpireTime);
     }
 
-    inline friend bool operator!=(const CIdentityVerification& a, const CIdentityVerification& b) {
-        return !(a == b);
-    }
+    inline friend bool operator!=(const CIdentityVerification& a, const CIdentityVerification& b) { return !(a == b); }
 
-    inline CIdentityVerification operator=(const CIdentityVerification& b) {
+    inline CIdentityVerification operator=(const CIdentityVerification& b)
+    {
         VerifierFullPath = b.VerifierFullPath;
         Identity = b.Identity;
         VerificationData = b.VerificationData;
@@ -140,12 +143,11 @@ public:
         txHash = b.txHash;
         return *this;
     }
- 
+
     inline bool IsNull() const { return (VerifierFullPath.empty()); }
     void Serialize(std::vector<unsigned char>& vchData);
     bool UnserializeFromData(const std::vector<unsigned char>& vchData, const std::vector<unsigned char>& vchHash);
     bool UnserializeFromTx(const CTransactionRef& tx);
-
 };
 
 #endif // DYNAMIC_BDAP_DOMAINENTRY_H

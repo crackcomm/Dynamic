@@ -6,16 +6,16 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #if defined(HAVE_CONFIG_H)
-#include "config/dynamic-config.h"
+#include "dynamic-config.h"
 #endif
 
-#include "chainparamsbase.h"
+#include "chain/paramsbase.h"
 #include "clientversion.h"
-#include "rpcclient.h"
-#include "rpcprotocol.h"
+#include "rpc/client.h"
+#include "rpc/protocol.h"
 #include "support/events.h"
-#include "util.h"
-#include "utilstrencodings.h"
+#include "util/strencodings.h"
+#include "util/util.h"
 
 #include <univalue.h>
 
@@ -23,7 +23,7 @@
 #include <event2/event.h>
 #include <event2/keyvalq_struct.h>
 
-#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/util/operations.hpp>
 
 #include <stdio.h>
 
@@ -37,17 +37,22 @@ std::string HelpMessageCli()
     std::string strUsage;
     strUsage += HelpMessageGroup(_("Options:"));
     strUsage += HelpMessageOpt("-?", _("This help message"));
-    strUsage += HelpMessageOpt("-conf=<file>", strprintf(_("Specify configuration file (default: %s)"), DYNAMIC_CONF_FILENAME));
+    strUsage += HelpMessageOpt("-conf=<file>", tfm::format(_("Specify configuration file (default: %s)"), DYNAMIC_CONF_FILENAME));
     strUsage += HelpMessageOpt("-datadir=<dir>", _("Specify data directory"));
     AppendParamsHelpMessages(strUsage);
-    strUsage += HelpMessageOpt("-named", strprintf(_("Pass named instead of positional arguments (default: %s)"), DEFAULT_NAMED));
-    strUsage += HelpMessageOpt("-rpcconnect=<ip>", strprintf(_("Send commands to node running on <ip> (default: %s)"), DEFAULT_RPCCONNECT));
-    strUsage += HelpMessageOpt("-rpcport=<port>", strprintf(_("Connect to JSON-RPC on <port> (default: %u or testnet: %u)"), BaseParams(CBaseChainParams::MAIN).RPCPort(), BaseParams(CBaseChainParams::TESTNET).RPCPort()));
+    strUsage += HelpMessageOpt("-named", tfm::format(_("Pass named instead of positional arguments (default: %s)"), DEFAULT_NAMED));
+    strUsage +=
+        HelpMessageOpt("-rpcconnect=<ip>", tfm::format(_("Send commands to node running on <ip> (default: %s)"), DEFAULT_RPCCONNECT));
+    strUsage += HelpMessageOpt(
+        "-rpcport=<port>", tfm::format(_("Connect to JSON-RPC on <port> (default: %u or testnet: %u)"),
+                               BaseParams(CBaseChainParams::MAIN).RPCPort(), BaseParams(CBaseChainParams::TESTNET).RPCPort()));
     strUsage += HelpMessageOpt("-rpcwait", _("Wait for RPC server to start"));
     strUsage += HelpMessageOpt("-rpcuser=<user>", _("Username for JSON-RPC connections"));
     strUsage += HelpMessageOpt("-rpcpassword=<pw>", _("Password for JSON-RPC connections"));
-    strUsage += HelpMessageOpt("-rpcclienttimeout=<n>", strprintf(_("Timeout during HTTP requests (default: %d)"), DEFAULT_HTTP_CLIENT_TIMEOUT));
-    strUsage += HelpMessageOpt("-stdin", _("Read extra arguments from standard input, one per line until EOF/Ctrl-D (recommended for sensitive information such as passphrases)"));
+    strUsage +=
+        HelpMessageOpt("-rpcclienttimeout=<n>", tfm::format(_("Timeout during HTTP requests (default: %d)"), DEFAULT_HTTP_CLIENT_TIMEOUT));
+    strUsage += HelpMessageOpt("-stdin", _("Read extra arguments from standard input, one per line until EOF/Ctrl-D (recommended for "
+                                           "sensitive information such as passphrases)"));
 
     return strUsage;
 }
@@ -64,7 +69,8 @@ std::string HelpMessageCli()
 class CConnectionFailed : public std::runtime_error
 {
 public:
-    explicit inline CConnectionFailed(const std::string& msg) : std::runtime_error(msg)
+    explicit inline CConnectionFailed(const std::string& msg)
+        : std::runtime_error(msg)
     {
     }
 };
@@ -82,8 +88,7 @@ static int AppInitRPC(int argc, char* argv[])
     if (argc < 2 || IsArgSet("-?") || IsArgSet("-h") || IsArgSet("-help") || IsArgSet("-version")) {
         std::string strUsage = _("Dynamic RPC client version") + " " + FormatFullVersion() + "\n";
         if (!IsArgSet("-version")) {
-            strUsage += "\n" + _("Usage:") + "\n" +
-                        "  dynamic-cli [options] <command> [params]  " + _("Send command to Dynamic") + "\n" +
+            strUsage += "\n" + _("Usage:") + "\n" + "  dynamic-cli [options] <command> [params]  " + _("Send command to Dynamic") + "\n" +
                         "  dynamic-cli [options] help                " + _("List commands") + "\n" +
                         "  dynamic-cli [options] help <command>      " + _("Get help for a command") + "\n";
 
@@ -99,17 +104,16 @@ static int AppInitRPC(int argc, char* argv[])
     }
     bool datadirFromCmdLine = IsArgSet("-datadir");
     if (datadirFromCmdLine && !boost::filesystem::is_directory(GetDataDir(false))) {
-        fprintf(stderr, "Error: Specified data directory \"%s\" does not exist.\n", GetArg("-datadir", "").c_str());
+        fprintf(stderr, "Error: Specified data directory \"%s\" does not exist.\n", gArgs.GetArg("-datadir", "").c_str());
         return EXIT_FAILURE;
     }
-    try {
-        ReadConfigFile(GetArg("-conf", DYNAMIC_CONF_FILENAME));
-    } catch (const std::exception& e) {
-        fprintf(stderr, "Error reading configuration file: %s\n", e.what());
+    std::string error;
+    if (!gArgs.ReadConfigFiles(error, true)) {
+        fprintf(stderr, "Error reading configuration file: %s\n", error.c_str());
         return EXIT_FAILURE;
     }
     if (!datadirFromCmdLine && !boost::filesystem::is_directory(GetDataDir(false))) {
-        fprintf(stderr, "Error: Specified data directory \"%s\" from config file does not exist.\n", GetArg("-datadir", "").c_str());
+        fprintf(stderr, "Error: Specified data directory \"%s\" from config file does not exist.\n", gArgs.GetArg("-datadir", "").c_str());
         return EXIT_FAILURE;
     }
     // Check for -testnet or -regtest parameter (BaseParams() calls are only valid after this clause)
@@ -129,7 +133,11 @@ static int AppInitRPC(int argc, char* argv[])
 
 /** Reply structure for request_done to fill in */
 struct HTTPReply {
-    HTTPReply() : status(0), error(-1) {}
+    HTTPReply()
+        : status(0)
+        , error(-1)
+    {
+    }
 
     int status;
     int error;
@@ -192,15 +200,15 @@ static void http_error_cb(enum evhttp_request_error err, void* ctx)
 
 UniValue CallRPC(const std::string& strMethod, const UniValue& params)
 {
-    std::string host = GetArg("-rpcconnect", DEFAULT_RPCCONNECT);
-    int port = GetArg("-rpcport", BaseParams().RPCPort());
+    std::string host = gArgs.GetArg("-rpcconnect", DEFAULT_RPCCONNECT);
+    int port = gArgs.GetArg("-rpcport", BaseParams().RPCPort());
 
     // Obtain event base
     raii_event_base base = obtain_event_base();
 
     // Synchronously look up hostname
     raii_evhttp_connection evcon = obtain_evhttp_connection_base(base.get(), host, port);
-    evhttp_connection_set_timeout(evcon.get(), GetArg("-rpcclienttimeout", DEFAULT_HTTP_CLIENT_TIMEOUT));
+    evhttp_connection_set_timeout(evcon.get(), gArgs.GetArg("-rpcclienttimeout", DEFAULT_HTTP_CLIENT_TIMEOUT));
 
     HTTPReply response;
     raii_evhttp_request req = obtain_evhttp_request(http_request_done, (void*)&response);
@@ -212,15 +220,15 @@ UniValue CallRPC(const std::string& strMethod, const UniValue& params)
 
     // Get credentials
     std::string strRPCUserColonPass;
-    if (GetArg("-rpcpassword", "") == "") {
+    if (gArgs.GetArg("-rpcpassword", "") == "") {
         // Try fall back to cookie-based authentication if no password is provided
         if (!GetAuthCookie(&strRPCUserColonPass)) {
-            throw std::runtime_error(strprintf(
-                _("Could not locate RPC credentials. No authentication cookie could be found, and no rpcpassword is set in the configuration file (%s)"),
-                GetConfigFile(GetArg("-conf", DYNAMIC_CONF_FILENAME)).string().c_str()));
+            throw std::runtime_error(tfm::format(_("Could not locate RPC credentials. No authentication cookie could be found, and no "
+                                                   "rpcpassword is set in the configuration file (%s)"),
+                GetConfigFile(gArgs.GetArg("-conf", DYNAMIC_CONF_FILENAME)).string().c_str()));
         }
     } else {
-        strRPCUserColonPass = GetArg("-rpcuser", "") + ":" + GetArg("-rpcpassword", "");
+        strRPCUserColonPass = gArgs.GetArg("-rpcuser", "") + ":" + gArgs.GetArg("-rpcpassword", "");
     }
 
     struct evkeyvalq* output_headers = evhttp_request_get_output_headers(req.get());
@@ -244,11 +252,14 @@ UniValue CallRPC(const std::string& strMethod, const UniValue& params)
     event_base_dispatch(base.get());
 
     if (response.status == 0)
-        throw CConnectionFailed(strprintf("couldn't connect to server: %s (code %d)\n(make sure server is running and you are connecting to the correct RPC port)", http_errorstring(response.error), response.error));
+        throw CConnectionFailed(tfm::format(
+            "couldn't connect to server: %s (code %d)\n(make sure server is running and you are connecting to the correct RPC port)",
+            http_errorstring(response.error), response.error));
     else if (response.status == HTTP_UNAUTHORIZED)
         throw std::runtime_error("incorrect rpcuser or rpcpassword (authorization failed)");
-    else if (response.status >= 400 && response.status != HTTP_BAD_REQUEST && response.status != HTTP_NOT_FOUND && response.status != HTTP_INTERNAL_SERVER_ERROR)
-        throw std::runtime_error(strprintf("server returned HTTP error %d", response.status));
+    else if (response.status >= 400 && response.status != HTTP_BAD_REQUEST && response.status != HTTP_NOT_FOUND &&
+             response.status != HTTP_INTERNAL_SERVER_ERROR)
+        throw std::runtime_error(tfm::format("server returned HTTP error %d", response.status));
     else if (response.body.empty())
         throw std::runtime_error("no response from server");
 

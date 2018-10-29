@@ -2,20 +2,20 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "chainparams.h"
-#include "coins.h"
+#include "chain/coins.h"
+#include "chain/params.h"
+#include "chain/validation.h"
 #include "consensus/consensus.h"
 #include "consensus/merkle.h"
 #include "consensus/validation.h"
-#include "validation.h"
+#include "db/txmempool.h"
 #include "dynode-payments.h"
+#include "keys/pubkey.h"
 #include "miner.h"
-#include "pubkey.h"
 #include "script/standard.h"
-#include "txmempool.h"
-#include "uint256.h"
-#include "util.h"
-#include "utilstrencodings.h"
+#include "util/strencodings.h"
+#include "util/util.h"
+#include <uint256.h>
 
 #include "miner-gpu.h"
 
@@ -27,39 +27,120 @@
 
 BOOST_FIXTURE_TEST_SUITE(miner_tests, TestingSetup)
 
-static
-struct {
+static struct {
     unsigned char extranonce;
     unsigned int nonce;
 } blockinfo[] = {
-    {0, 0x009c5477}, {0, 0x00a94582}, {0, 0x00af3d7f}, {0, 0x00d0b721},
-    {0, 0x00d53e10}, {0, 0x00f52f0f}, {0, 0x00fb5876}, {0, 0x0117fb12},
-    {0, 0x011f930b}, {0, 0x013365d2}, {0, 0x0151737e}, {0, 0x0152cdd0},
-    {0, 0x01758d20}, {0, 0x0178d509}, {0, 0x0192103c}, {0, 0x01a3f1b8},
-    {0, 0x01abc9c7}, {0, 0x01d2f50c}, {0, 0x01eebad1}, {0, 0x01ef3419},
-    {0, 0x01f3f154}, {0, 0x01fa6245}, {0, 0x0224e780}, {0, 0x02281625},
-    {0, 0x023a4d10}, {0, 0x0251d3cf}, {0, 0x02555277}, {0, 0x02648a41},
-    {0, 0x0280795e}, {0, 0x02a3a585}, {0, 0x02ade34a}, {0, 0x02b02b02},
-    {0, 0x02c9dc32}, {0, 0x02da9867}, {0, 0x02e4126e}, {0, 0x02e738c7},
-    {0, 0x02f5c6a9}, {0, 0x0307bb0f}, {0, 0x0328ea58}, {0, 0x034fe819},
-    {0, 0x036c6fcb}, {0, 0x039b8e11}, {0, 0x039fec90}, {0, 0x03a268ff},
-    {0, 0x03d37583}, {0, 0x03d6a9a7}, {0, 0x03e7a013}, {0, 0x03f01ebe},
-    {0, 0x0437104d}, {0, 0x043d0af7}, {0, 0x043d824d}, {0, 0x043f50fc},
-    {0, 0x044def8c}, {0, 0x0452309a}, {0, 0x04538bd3}, {0, 0x0459286b},
-    {0, 0x045bc734}, {0, 0x045c878a}, {0, 0x0485d3ba}, {0, 0x048a64e5},
-    {0, 0x048d6ae1}, {0, 0x048dcfec}, {0, 0x049d2c79}, {0, 0x04ade791},
-    {0, 0x04b75856}, {0, 0x04c1f89e}, {0, 0x04c2f731}, {0, 0x04ca0376},
-    {0, 0x04ca102a}, {0, 0x04cbdfe5}, {0, 0x04cbe35a}, {0, 0x04ccfa95},
-    {0, 0x04dcd6e4}, {0, 0x05066d8b}, {0, 0x05150274}, {0, 0x051dcfa0},
-    {0, 0x052a4c40}, {0, 0x05310c4e}, {0, 0x05452f69}, {0, 0x05517592},
-    {0, 0x05543eb8}, {0, 0x05549dc7}, {0, 0x05732695}, {0, 0x057b00d3},
-    {0, 0x0584760d}, {0, 0x059ca419}, {0, 0x05b23b58}, {0, 0x05c69745},
-    {0, 0x05e31a12}, {0, 0x05e932d5}, {0, 0x05ef8400}, {0, 0x05f0bdf6},
-    {0, 0x05f93997}, {0, 0x05ff2978}, {0, 0x06030233}, {0, 0x0627d615},
-    {0, 0x0644a441}, {0, 0x06518661}, {0, 0x06805ef2}, {0, 0x068c43dd},
-    {0, 0x069cca16}, {0, 0x06acbf10}, {0, 0x06c2d607}, {0, 0x06d9ea08},
-    {0, 0x0700d639}, {0, 0x07083d86}, {0, 0x071cc39d}, {0, 0x072c3cb8},
-    {0, 0x07665a0f}, {0, 0x07741214},
+    {0, 0x009c5477},
+    {0, 0x00a94582},
+    {0, 0x00af3d7f},
+    {0, 0x00d0b721},
+    {0, 0x00d53e10},
+    {0, 0x00f52f0f},
+    {0, 0x00fb5876},
+    {0, 0x0117fb12},
+    {0, 0x011f930b},
+    {0, 0x013365d2},
+    {0, 0x0151737e},
+    {0, 0x0152cdd0},
+    {0, 0x01758d20},
+    {0, 0x0178d509},
+    {0, 0x0192103c},
+    {0, 0x01a3f1b8},
+    {0, 0x01abc9c7},
+    {0, 0x01d2f50c},
+    {0, 0x01eebad1},
+    {0, 0x01ef3419},
+    {0, 0x01f3f154},
+    {0, 0x01fa6245},
+    {0, 0x0224e780},
+    {0, 0x02281625},
+    {0, 0x023a4d10},
+    {0, 0x0251d3cf},
+    {0, 0x02555277},
+    {0, 0x02648a41},
+    {0, 0x0280795e},
+    {0, 0x02a3a585},
+    {0, 0x02ade34a},
+    {0, 0x02b02b02},
+    {0, 0x02c9dc32},
+    {0, 0x02da9867},
+    {0, 0x02e4126e},
+    {0, 0x02e738c7},
+    {0, 0x02f5c6a9},
+    {0, 0x0307bb0f},
+    {0, 0x0328ea58},
+    {0, 0x034fe819},
+    {0, 0x036c6fcb},
+    {0, 0x039b8e11},
+    {0, 0x039fec90},
+    {0, 0x03a268ff},
+    {0, 0x03d37583},
+    {0, 0x03d6a9a7},
+    {0, 0x03e7a013},
+    {0, 0x03f01ebe},
+    {0, 0x0437104d},
+    {0, 0x043d0af7},
+    {0, 0x043d824d},
+    {0, 0x043f50fc},
+    {0, 0x044def8c},
+    {0, 0x0452309a},
+    {0, 0x04538bd3},
+    {0, 0x0459286b},
+    {0, 0x045bc734},
+    {0, 0x045c878a},
+    {0, 0x0485d3ba},
+    {0, 0x048a64e5},
+    {0, 0x048d6ae1},
+    {0, 0x048dcfec},
+    {0, 0x049d2c79},
+    {0, 0x04ade791},
+    {0, 0x04b75856},
+    {0, 0x04c1f89e},
+    {0, 0x04c2f731},
+    {0, 0x04ca0376},
+    {0, 0x04ca102a},
+    {0, 0x04cbdfe5},
+    {0, 0x04cbe35a},
+    {0, 0x04ccfa95},
+    {0, 0x04dcd6e4},
+    {0, 0x05066d8b},
+    {0, 0x05150274},
+    {0, 0x051dcfa0},
+    {0, 0x052a4c40},
+    {0, 0x05310c4e},
+    {0, 0x05452f69},
+    {0, 0x05517592},
+    {0, 0x05543eb8},
+    {0, 0x05549dc7},
+    {0, 0x05732695},
+    {0, 0x057b00d3},
+    {0, 0x0584760d},
+    {0, 0x059ca419},
+    {0, 0x05b23b58},
+    {0, 0x05c69745},
+    {0, 0x05e31a12},
+    {0, 0x05e932d5},
+    {0, 0x05ef8400},
+    {0, 0x05f0bdf6},
+    {0, 0x05f93997},
+    {0, 0x05ff2978},
+    {0, 0x06030233},
+    {0, 0x0627d615},
+    {0, 0x0644a441},
+    {0, 0x06518661},
+    {0, 0x06805ef2},
+    {0, 0x068c43dd},
+    {0, 0x069cca16},
+    {0, 0x06acbf10},
+    {0, 0x06c2d607},
+    {0, 0x06d9ea08},
+    {0, 0x0700d639},
+    {0, 0x07083d86},
+    {0, 0x071cc39d},
+    {0, 0x072c3cb8},
+    {0, 0x07665a0f},
+    {0, 0x07741214},
 };
 
 CBlockIndex CreateBlockIndex(int nHeight)
@@ -70,7 +151,7 @@ CBlockIndex CreateBlockIndex(int nHeight)
     return index;
 }
 
-bool TestSequenceLocks(const CTransaction &tx, int flags)
+bool TestSequenceLocks(const CTransaction& tx, int flags)
 {
     LOCK(mempool.cs);
     return CheckSequenceLocks(tx, flags);
@@ -90,7 +171,31 @@ BOOST_AUTO_TEST_CASE(GetHashGPU_check)
     // Random real block (000000005a4ded781e667e06ceefafb71410b511fe0d5adc3e5a27ecbec34ae6)
     // With 4 txes
     CBlock block;
-    CDataStream stream(ParseHex("0100000075616236cc2126035fadb38deb65b9102cc2c41c09cdf29fc051906800000000fe7d5e12ef0ff901f6050211249919b1c0653771832b3a80c66cea42847f0ae1d4d26e49ffff001d00f0a4410401000000010000000000000000000000000000000000000000000000000000000000000000ffffffff0804ffff001d029105ffffffff0100f2052a010000004341046d8709a041d34357697dfcb30a9d05900a6294078012bf3bb09c6f9b525f1d16d5503d7905db1ada9501446ea00728668fc5719aa80be2fdfc8a858a4dbdd4fbac00000000010000000255605dc6f5c3dc148b6da58442b0b2cd422be385eab2ebea4119ee9c268d28350000000049483045022100aa46504baa86df8a33b1192b1b9367b4d729dc41e389f2c04f3e5c7f0559aae702205e82253a54bf5c4f65b7428551554b2045167d6d206dfe6a2e198127d3f7df1501ffffffff55605dc6f5c3dc148b6da58442b0b2cd422be385eab2ebea4119ee9c268d2835010000004847304402202329484c35fa9d6bb32a55a70c0982f606ce0e3634b69006138683bcd12cbb6602200c28feb1e2555c3210f1dddb299738b4ff8bbe9667b68cb8764b5ac17b7adf0001ffffffff0200e1f505000000004341046a0765b5865641ce08dd39690aade26dfbf5511430ca428a3089261361cef170e3929a68aee3d8d4848b0c5111b0a37b82b86ad559fd2a745b44d8e8d9dfdc0cac00180d8f000000004341044a656f065871a353f216ca26cef8dde2f03e8c16202d2e8ad769f02032cb86a5eb5e56842e92e19141d60a01928f8dd2c875a390f67c1f6c94cfc617c0ea45afac0000000001000000025f9a06d3acdceb56be1bfeaa3e8a25e62d182fa24fefe899d1c17f1dad4c2028000000004847304402205d6058484157235b06028c30736c15613a28bdb768ee628094ca8b0030d4d6eb0220328789c9a2ec27ddaec0ad5ef58efded42e6ea17c2e1ce838f3d6913f5e95db601ffffffff5f9a06d3acdceb56be1bfeaa3e8a25e62d182fa24fefe899d1c17f1dad4c2028010000004a493046022100c45af050d3cea806cedd0ab22520c53ebe63b987b8954146cdca42487b84bdd6022100b9b027716a6b59e640da50a864d6dd8a0ef24c76ce62391fa3eabaf4d2886d2d01ffffffff0200e1f505000000004341046a0765b5865641ce08dd39690aade26dfbf5511430ca428a3089261361cef170e3929a68aee3d8d4848b0c5111b0a37b82b86ad559fd2a745b44d8e8d9dfdc0cac00180d8f000000004341046a0765b5865641ce08dd39690aade26dfbf5511430ca428a3089261361cef170e3929a68aee3d8d4848b0c5111b0a37b82b86ad559fd2a745b44d8e8d9dfdc0cac000000000100000002e2274e5fea1bf29d963914bd301aa63b64daaf8a3e88f119b5046ca5738a0f6b0000000048473044022016e7a727a061ea2254a6c358376aaa617ac537eb836c77d646ebda4c748aac8b0220192ce28bf9f2c06a6467e6531e27648d2b3e2e2bae85159c9242939840295ba501ffffffffe2274e5fea1bf29d963914bd301aa63b64daaf8a3e88f119b5046ca5738a0f6b010000004a493046022100b7a1a755588d4190118936e15cd217d133b0e4a53c3c15924010d5648d8925c9022100aaef031874db2114f2d869ac2de4ae53908fbfea5b2b1862e181626bb9005c9f01ffffffff0200e1f505000000004341044a656f065871a353f216ca26cef8dde2f03e8c16202d2e8ad769f02032cb86a5eb5e56842e92e19141d60a01928f8dd2c875a390f67c1f6c94cfc617c0ea45afac00180d8f000000004341046a0765b5865641ce08dd39690aade26dfbf5511430ca428a3089261361cef170e3929a68aee3d8d4848b0c5111b0a37b82b86ad559fd2a745b44d8e8d9dfdc0cac00000000"), SER_NETWORK, PROTOCOL_VERSION);
+    CDataStream stream(
+        ParseHex(
+            "0100000075616236cc2126035fadb38deb65b9102cc2c41c09cdf29fc051906800000000fe7d5e12ef0ff901f6050211249919b1c0653771832b3a80c66cea"
+            "42847f0ae1d4d26e49ffff001d00f0a4410401000000010000000000000000000000000000000000000000000000000000000000000000ffffffff0804ffff"
+            "001d029105ffffffff0100f2052a010000004341046d8709a041d34357697dfcb30a9d05900a6294078012bf3bb09c6f9b525f1d16d5503d7905db1ada9501"
+            "446ea00728668fc5719aa80be2fdfc8a858a4dbdd4fbac00000000010000000255605dc6f5c3dc148b6da58442b0b2cd422be385eab2ebea4119ee9c268d28"
+            "350000000049483045022100aa46504baa86df8a33b1192b1b9367b4d729dc41e389f2c04f3e5c7f0559aae702205e82253a54bf5c4f65b7428551554b2045"
+            "167d6d206dfe6a2e198127d3f7df1501ffffffff55605dc6f5c3dc148b6da58442b0b2cd422be385eab2ebea4119ee9c268d28350100000048473044022023"
+            "29484c35fa9d6bb32a55a70c0982f606ce0e3634b69006138683bcd12cbb6602200c28feb1e2555c3210f1dddb299738b4ff8bbe9667b68cb8764b5ac17b7a"
+            "df0001ffffffff0200e1f505000000004341046a0765b5865641ce08dd39690aade26dfbf5511430ca428a3089261361cef170e3929a68aee3d8d4848b0c51"
+            "11b0a37b82b86ad559fd2a745b44d8e8d9dfdc0cac00180d8f000000004341044a656f065871a353f216ca26cef8dde2f03e8c16202d2e8ad769f02032cb86"
+            "a5eb5e56842e92e19141d60a01928f8dd2c875a390f67c1f6c94cfc617c0ea45afac0000000001000000025f9a06d3acdceb56be1bfeaa3e8a25e62d182fa2"
+            "4fefe899d1c17f1dad4c2028000000004847304402205d6058484157235b06028c30736c15613a28bdb768ee628094ca8b0030d4d6eb0220328789c9a2ec27"
+            "ddaec0ad5ef58efded42e6ea17c2e1ce838f3d6913f5e95db601ffffffff5f9a06d3acdceb56be1bfeaa3e8a25e62d182fa24fefe899d1c17f1dad4c202801"
+            "0000004a493046022100c45af050d3cea806cedd0ab22520c53ebe63b987b8954146cdca42487b84bdd6022100b9b027716a6b59e640da50a864d6dd8a0ef2"
+            "4c76ce62391fa3eabaf4d2886d2d01ffffffff0200e1f505000000004341046a0765b5865641ce08dd39690aade26dfbf5511430ca428a3089261361cef170"
+            "e3929a68aee3d8d4848b0c5111b0a37b82b86ad559fd2a745b44d8e8d9dfdc0cac00180d8f000000004341046a0765b5865641ce08dd39690aade26dfbf551"
+            "1430ca428a3089261361cef170e3929a68aee3d8d4848b0c5111b0a37b82b86ad559fd2a745b44d8e8d9dfdc0cac000000000100000002e2274e5fea1bf29d"
+            "963914bd301aa63b64daaf8a3e88f119b5046ca5738a0f6b0000000048473044022016e7a727a061ea2254a6c358376aaa617ac537eb836c77d646ebda4c74"
+            "8aac8b0220192ce28bf9f2c06a6467e6531e27648d2b3e2e2bae85159c9242939840295ba501ffffffffe2274e5fea1bf29d963914bd301aa63b64daaf8a3e"
+            "88f119b5046ca5738a0f6b010000004a493046022100b7a1a755588d4190118936e15cd217d133b0e4a53c3c15924010d5648d8925c9022100aaef031874db"
+            "2114f2d869ac2de4ae53908fbfea5b2b1862e181626bb9005c9f01ffffffff0200e1f505000000004341044a656f065871a353f216ca26cef8dde2f03e8c16"
+            "202d2e8ad769f02032cb86a5eb5e56842e92e19141d60a01928f8dd2c875a390f67c1f6c94cfc617c0ea45afac00180d8f000000004341046a0765b5865641"
+            "ce08dd39690aade26dfbf5511430ca428a3089261361cef170e3929a68aee3d8d4848b0c5111b0a37b82b86ad559fd2a745b44d8e8d9dfdc0cac00000000"),
+        SER_NETWORK, PROTOCOL_VERSION);
     stream >> block;
 
     uint256 cpuHash = block.GetHash();
@@ -107,16 +212,18 @@ BOOST_AUTO_TEST_CASE(GetHashGPU_check)
     BOOST_TEST_MESSAGE("CPU HASH: " << cpuHash.GetHex());
     BOOST_TEST_MESSAGE("GPU HASH: " << gpuHash.GetHex());
 }
-#endif //ENABLE_GPU
+#endif // ENABLE_GPU
 
 
 // NOTE: These tests rely on CreateNewBlock doing its own self-validation!
 BOOST_AUTO_TEST_CASE(CreateNewBlock_validity)
 {
     const CChainParams& chainparams = Params(CBaseChainParams::MAIN);
-    CScript scriptPubKey = CScript() << ParseHex("04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f") << OP_CHECKSIG;
+    CScript scriptPubKey = CScript() << ParseHex("04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e"
+                                                 "51ec112de5c384df7ba0b8d578a4c702b6bf11d5f")
+                                     << OP_CHECKSIG;
     std::unique_ptr<CBlockTemplate> pblocktemplate;
-    CMutableTransaction tx,tx2;
+    CMutableTransaction tx, tx2;
     CScript script;
     uint256 hash;
     TestMemPoolEntryHelper entry;
@@ -137,11 +244,10 @@ BOOST_AUTO_TEST_CASE(CreateNewBlock_validity)
     // Therefore, load 100 blocks :)
     int baseheight = 0;
     std::vector<CTransactionRef> txFirst;
-    for (unsigned int i = 0; i < sizeof(blockinfo)/sizeof(*blockinfo); ++i)
-    {
-        CBlock *pblock = &pblocktemplate->block; // pointer for convenience
+    for (unsigned int i = 0; i < sizeof(blockinfo) / sizeof(*blockinfo); ++i) {
+        CBlock* pblock = &pblocktemplate->block; // pointer for convenience
         pblock->nVersion = 2;
-        pblock->nTime = chainActive.Tip()->GetMedianTimePast()+1;
+        pblock->nTime = chainActive.Tip()->GetMedianTimePast() + 1;
         CMutableTransaction txCoinbase(*pblock->vtx[0]);
         txCoinbase.nVersion = 1;
         txCoinbase.vin[0].scriptSig = CScript() << (chainActive.Height() + 1);
@@ -171,8 +277,7 @@ BOOST_AUTO_TEST_CASE(CreateNewBlock_validity)
     tx.vin[0].prevout.n = 0;
     tx.vout.resize(1);
     tx.vout[0].nValue = 50000000000LL;
-    for (unsigned int i = 0; i < 1001; ++i)
-    {
+    for (unsigned int i = 0; i < 1001; ++i) {
         tx.vout[0].nValue -= 1000000;
         hash = tx.GetHash();
         bool spendsCoinbase = (i == 0) ? true : false; // only first tx spends coinbase
@@ -185,8 +290,7 @@ BOOST_AUTO_TEST_CASE(CreateNewBlock_validity)
 
     tx.vin[0].prevout.hash = txFirst[0]->GetHash();
     tx.vout[0].nValue = 50000000000LL;
-    for (unsigned int i = 0; i < 1001; ++i)
-    {
+    for (unsigned int i = 0; i < 1001; ++i) {
         tx.vout[0].nValue -= 1000000;
         hash = tx.GetHash();
         bool spendsCoinbase = (i == 0) ? true : false; // only first tx spends coinbase
@@ -206,8 +310,7 @@ BOOST_AUTO_TEST_CASE(CreateNewBlock_validity)
     tx.vin[0].scriptSig << OP_1;
     tx.vin[0].prevout.hash = txFirst[0]->GetHash();
     tx.vout[0].nValue = 50000000000LL;
-    for (unsigned int i = 0; i < 128; ++i)
-    {
+    for (unsigned int i = 0; i < 128; ++i) {
         tx.vout[0].nValue -= 10000000;
         hash = tx.GetHash();
         bool spendsCoinbase = (i == 0) ? true : false; // only first tx spends coinbase
@@ -317,8 +420,8 @@ BOOST_AUTO_TEST_CASE(CreateNewBlock_validity)
     // }
 
     // non-final txs in mempool
-    SetMockTime(chainActive.Tip()->GetMedianTimePast()+1);
-    int flags = LOCKTIME_VERIFY_SEQUENCE|LOCKTIME_MEDIAN_TIME_PAST;
+    SetMockTime(chainActive.Tip()->GetMedianTimePast() + 1);
+    int flags = LOCKTIME_VERIFY_SEQUENCE | LOCKTIME_MEDIAN_TIME_PAST;
     // height map
     std::vector<int> prevheights;
 
@@ -337,24 +440,29 @@ BOOST_AUTO_TEST_CASE(CreateNewBlock_validity)
     tx.nLockTime = 0;
     hash = tx.GetHash();
     mempool.addUnchecked(hash, entry.Fee(1000000000L).Time(GetTime()).SpendsCoinbase(true).FromTx(tx));
-    BOOST_CHECK(CheckFinalTx(tx, flags)); // Locktime passes
+    BOOST_CHECK(CheckFinalTx(tx, flags));       // Locktime passes
     BOOST_CHECK(!TestSequenceLocks(tx, flags)); // Sequence locks fail
-    BOOST_CHECK(SequenceLocks(tx, flags, &prevheights, CreateBlockIndex(chainActive.Tip()->nHeight + 2))); // Sequence locks pass on 2nd block
+    BOOST_CHECK(
+        SequenceLocks(tx, flags, &prevheights, CreateBlockIndex(chainActive.Tip()->nHeight + 2))); // Sequence locks pass on 2nd block
 
     // relative time locked
     tx.vin[0].prevout.hash = txFirst[1]->GetHash();
-    tx.vin[0].nSequence = CTxIn::SEQUENCE_LOCKTIME_TYPE_FLAG | (((chainActive.Tip()->GetMedianTimePast()+1-chainActive[1]->GetMedianTimePast()) >> CTxIn::SEQUENCE_LOCKTIME_GRANULARITY) + 1); // txFirst[1] is the 3rd block
+    tx.vin[0].nSequence =
+        CTxIn::SEQUENCE_LOCKTIME_TYPE_FLAG |
+        (((chainActive.Tip()->GetMedianTimePast() + 1 - chainActive[1]->GetMedianTimePast()) >> CTxIn::SEQUENCE_LOCKTIME_GRANULARITY) +
+            1); // txFirst[1] is the 3rd block
     prevheights[0] = baseheight + 2;
     hash = tx.GetHash();
     mempool.addUnchecked(hash, entry.Time(GetTime()).FromTx(tx));
-    BOOST_CHECK(CheckFinalTx(tx, flags)); // Locktime passes
+    BOOST_CHECK(CheckFinalTx(tx, flags));       // Locktime passes
     BOOST_CHECK(!TestSequenceLocks(tx, flags)); // Sequence locks fail
 
     for (int i = 0; i < CBlockIndex::nMedianTimeSpan; i++)
-        chainActive.Tip()->GetAncestor(chainActive.Tip()->nHeight - i)->nTime += 512; //Trick the MedianTimePast
-    BOOST_CHECK(SequenceLocks(tx, flags, &prevheights, CreateBlockIndex(chainActive.Tip()->nHeight + 1))); // Sequence locks pass 512 seconds later
+        chainActive.Tip()->GetAncestor(chainActive.Tip()->nHeight - i)->nTime += 512; // Trick the MedianTimePast
+    BOOST_CHECK(
+        SequenceLocks(tx, flags, &prevheights, CreateBlockIndex(chainActive.Tip()->nHeight + 1))); // Sequence locks pass 512 seconds later
     for (int i = 0; i < CBlockIndex::nMedianTimeSpan; i++)
-        chainActive.Tip()->GetAncestor(chainActive.Tip()->nHeight - i)->nTime -= 512; //undo tricked MTP
+        chainActive.Tip()->GetAncestor(chainActive.Tip()->nHeight - i)->nTime -= 512; // undo tricked MTP
 
     // absolute height locked
     tx.vin[0].prevout.hash = txFirst[2]->GetHash();
@@ -363,8 +471,8 @@ BOOST_AUTO_TEST_CASE(CreateNewBlock_validity)
     tx.nLockTime = chainActive.Tip()->nHeight + 1;
     hash = tx.GetHash();
     mempool.addUnchecked(hash, entry.Time(GetTime()).FromTx(tx));
-    BOOST_CHECK(!CheckFinalTx(tx, flags)); // Locktime fails
-    BOOST_CHECK(TestSequenceLocks(tx, flags)); // Sequence locks pass
+    BOOST_CHECK(!CheckFinalTx(tx, flags));                                                              // Locktime fails
+    BOOST_CHECK(TestSequenceLocks(tx, flags));                                                          // Sequence locks pass
     BOOST_CHECK(IsFinalTx(tx, chainActive.Tip()->nHeight + 2, chainActive.Tip()->GetMedianTimePast())); // Locktime passes on 2nd block
 
     // absolute time locked
@@ -374,16 +482,17 @@ BOOST_AUTO_TEST_CASE(CreateNewBlock_validity)
     prevheights[0] = baseheight + 4;
     hash = tx.GetHash();
     mempool.addUnchecked(hash, entry.Time(GetTime()).FromTx(tx));
-    BOOST_CHECK(!CheckFinalTx(tx, flags)); // Locktime fails
+    BOOST_CHECK(!CheckFinalTx(tx, flags));     // Locktime fails
     BOOST_CHECK(TestSequenceLocks(tx, flags)); // Sequence locks pass
-    BOOST_CHECK(IsFinalTx(tx, chainActive.Tip()->nHeight + 2, chainActive.Tip()->GetMedianTimePast() + 1)); // Locktime passes 1 second later
+    BOOST_CHECK(
+        IsFinalTx(tx, chainActive.Tip()->nHeight + 2, chainActive.Tip()->GetMedianTimePast() + 1)); // Locktime passes 1 second later
 
     // mempool-dependent transactions (not added)
     tx.vin[0].prevout.hash = hash;
     prevheights[0] = chainActive.Tip()->nHeight + 1;
     tx.nLockTime = 0;
     tx.vin[0].nSequence = 0;
-    BOOST_CHECK(CheckFinalTx(tx, flags)); // Locktime passes
+    BOOST_CHECK(CheckFinalTx(tx, flags));      // Locktime passes
     BOOST_CHECK(TestSequenceLocks(tx, flags)); // Sequence locks pass
     tx.vin[0].nSequence = 1;
     BOOST_CHECK(!TestSequenceLocks(tx, flags)); // Sequence locks fail
@@ -401,7 +510,7 @@ BOOST_AUTO_TEST_CASE(CreateNewBlock_validity)
     BOOST_CHECK_EQUAL(pblocktemplate->block.vtx.size(), 3);
     // However if we advance height by 1 and time by 512, all of them should be mined
     for (int i = 0; i < CBlockIndex::nMedianTimeSpan; i++)
-        chainActive.Tip()->GetAncestor(chainActive.Tip()->nHeight - i)->nTime += 512; //Trick the MedianTimePast
+        chainActive.Tip()->GetAncestor(chainActive.Tip()->nHeight - i)->nTime += 512; // Trick the MedianTimePast
     chainActive.Tip()->nHeight++;
     SetMockTime(chainActive.Tip()->GetMedianTimePast() + 1);
 

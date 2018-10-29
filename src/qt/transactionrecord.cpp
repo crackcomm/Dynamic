@@ -7,15 +7,15 @@
 
 #include "transactionrecord.h"
 
-#include "base58.h"
 #include "bdap/bdap.h"
 #include "bdap/domainentry.h"
+#include "chain/instantsend.h"
+#include "chain/validation.h"
 #include "consensus/consensus.h"
 #include "fluid/fluid.h"
-#include "instantsend.h"
-#include "privatesend.h"
+#include "privatesend/privatesend.h"
 #include "timedata.h"
-#include "validation.h"
+#include "util/base58.h"
 #include "wallet/wallet.h"
 
 #include <stdint.h>
@@ -138,7 +138,8 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const CWallet* 
                 }
             } else {
                 sub.idx = parts.size();
-                if (wtx.tx->vin.size() == 1 && wtx.tx->vout.size() == 1 && CPrivateSend::IsCollateralAmount(nDebit) && CPrivateSend::IsCollateralAmount(nCredit) && CPrivateSend::IsCollateralAmount(-nNet)) {
+                if (wtx.tx->vin.size() == 1 && wtx.tx->vout.size() == 1 && CPrivateSend::IsCollateralAmount(nDebit) &&
+                    CPrivateSend::IsCollateralAmount(nCredit) && CPrivateSend::IsCollateralAmount(-nNet)) {
                     sub.type = TransactionRecord::PrivateSendCollateralPayment;
                 } else {
                     for (const auto& txout : wtx.tx->vout) {
@@ -270,11 +271,8 @@ void TransactionRecord::updateStatus(const CWalletTx& wtx)
         pindex = (*mi).second;
 
     // Sort order, unrecorded transactions sort to the top
-    status.sortKey = strprintf("%010d-%01d-%010u-%03d",
-        (pindex ? pindex->nHeight : std::numeric_limits<int>::max()),
-        (wtx.IsCoinBase() ? 1 : 0),
-        wtx.nTimeReceived,
-        idx);
+    status.sortKey = tfm::format("%010d-%01d-%010u-%03d", (pindex ? pindex->nHeight : std::numeric_limits<int>::max()),
+        (wtx.IsCoinBase() ? 1 : 0), wtx.nTimeReceived, idx);
     status.countsForBalance = wtx.IsTrusted() && !(wtx.GetBlocksToMaturity() > 0);
     status.depth = wtx.GetDepthInMainChain();
     status.cur_num_blocks = chainActive.Height();
@@ -329,12 +327,6 @@ bool TransactionRecord::statusUpdateNeeded()
     return status.cur_num_blocks != chainActive.Height() || status.cur_num_is_locks != nCompleteTXLocks;
 }
 
-QString TransactionRecord::getTxID() const
-{
-    return QString::fromStdString(hash.ToString());
-}
+QString TransactionRecord::getTxID() const { return QString::fromStdString(hash.ToString()); }
 
-int TransactionRecord::getOutputIndex() const
-{
-    return idx;
-}
+int TransactionRecord::getOutputIndex() const { return idx; }

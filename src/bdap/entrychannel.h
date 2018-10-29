@@ -5,28 +5,25 @@
 #ifndef DYNAMIC_BDAP_ENTRYCHANNEL_H
 #define DYNAMIC_BDAP_ENTRYCHANNEL_H
 
-#include "amount.h"
 #include "bdap.h"
 #include "bdap/domainentry.h"
-#include "serialize.h"
-#include "uint256.h"
+#include "chain/amount.h"
+#include "util/serialize.h"
+#include <uint256.h>
 
 class CTransaction;
 
-enum ResourcePointerType {
-    OTHER = 0,
-    IPFS = 1,
-    LIBTORRENT = 2,
-    CLOUDSTORAGE = 3
-};
+enum ResourcePointerType { OTHER = 0, IPFS = 1, LIBTORRENT = 2, CLOUDSTORAGE = 3 };
 
-class CEntryChannel {
+class CEntryChannel
+{
 public:
-    static const int CURRENT_VERSION=1;
+    static const int CURRENT_VERSION = 1;
     int nVersion;
-    CharString OwnerFullPath;  // name of the owner's full domain entry path
+    CharString OwnerFullPath; // name of the owner's full domain entry path
     CharString Description;
-    CharString ResourcePointer; // used to point to a domain shared resource like a stream (video, audio, file sharing), P2P storage (LibTorrent or IPFS network), or private cloud storage
+    CharString ResourcePointer; // used to point to a domain shared resource like a stream (video, audio, file sharing), P2P storage
+                                // (LibTorrent or IPFS network), or private cloud storage
     ResourcePointerType ResourceType;
     CAmount InitialTransactionFee;
     CAmount InitialRegistrationFeePerDay;
@@ -40,11 +37,10 @@ public:
 
     CDomainEntry* OwnerDomainEntry;
 
-    CEntryChannel() {
-        SetNull();
-    }
+    CEntryChannel() { SetNull(); }
 
-    CEntryChannel(const CTransactionRef& tx) {
+    CEntryChannel(const CTransactionRef& tx)
+    {
         SetNull();
         UnserializeFromTx(tx);
     }
@@ -69,12 +65,13 @@ public:
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
+    inline void SerializationOp(Stream& s, Operation ser_action)
+    {
         READWRITE(this->nVersion);
         READWRITE(OwnerFullPath);
         READWRITE(Description);
         READWRITE(ResourcePointer);
-        //READWRITE(ResourceType); //TODO: (bdap) serialize this enum.
+        // READWRITE(ResourceType); //TODO: (bdap) serialize this enum.
         READWRITE(InitialTransactionFee);
         READWRITE(InitialRegistrationFeePerDay);
         READWRITE(InitialSupply);
@@ -84,15 +81,16 @@ public:
         READWRITE(txHash);
     }
 
-    inline friend bool operator==(const CEntryChannel& a, const CEntryChannel& b) {
-        return (a.OwnerFullPath == b.OwnerFullPath && a.ResourcePointer == b.ResourcePointer && a.Description == b.Description && a.nHeight == b.nHeight);
+    inline friend bool operator==(const CEntryChannel& a, const CEntryChannel& b)
+    {
+        return (a.OwnerFullPath == b.OwnerFullPath && a.ResourcePointer == b.ResourcePointer && a.Description == b.Description &&
+                a.nHeight == b.nHeight);
     }
 
-    inline friend bool operator!=(const CEntryChannel& a, const CEntryChannel& b) {
-        return !(a == b);
-    }
+    inline friend bool operator!=(const CEntryChannel& a, const CEntryChannel& b) { return !(a == b); }
 
-    inline CEntryChannel operator=(const CEntryChannel& b) {
+    inline CEntryChannel operator=(const CEntryChannel& b)
+    {
         OwnerFullPath = b.OwnerFullPath;
         Description = b.Description;
         ResourcePointer = b.ResourcePointer;
@@ -106,7 +104,7 @@ public:
         txHash = b.txHash;
         return *this;
     }
- 
+
     inline bool IsNull() const { return (OwnerFullPath.empty()); }
     void Serialize(std::vector<unsigned char>& vchData);
     bool UnserializeFromData(const std::vector<unsigned char>& vchData, const std::vector<unsigned char>& vchHash);

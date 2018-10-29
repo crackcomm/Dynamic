@@ -10,7 +10,7 @@
 #include "crypto/hmac_sha512.h"
 
 #include "test_random.h"
-#include "utilstrencodings.h"
+#include "util/strencodings.h"
 #include "test/test_dynamic.h"
 
 #include <vector>

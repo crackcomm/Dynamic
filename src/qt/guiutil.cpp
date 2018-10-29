@@ -7,20 +7,20 @@
 
 #include "guiutil.h"
 
-#include "arith_uint256.h"
 #include "dynamicaddressvalidator.h"
 #include "dynamicunits.h"
+#include "arith_uint256.h"
 #include "qvalidatedlineedit.h"
 #include "walletmodel.h"
 
 #include "init.h"
+#include "net/protocol.h"
 #include "policy/policy.h"
 #include "primitives/transaction.h"
-#include "protocol.h"
 #include "script/script.h"
 #include "script/standard.h"
-#include "util.h"
-#include "validation.h" // For minRelayTxFee
+#include "util/util.h"
+#include "chain/validation.h" // For minRelayTxFee
 
 #ifdef WIN32
 #ifdef _WIN32_WINNT
@@ -46,7 +46,6 @@
 #include <boost/filesystem/detail/utf8_codecvt_facet.hpp>
 #endif
 #include <boost/scoped_array.hpp>
-#include <boost/thread.hpp>
 
 #include <QAbstractItemView>
 #include <QApplication>
@@ -621,7 +620,7 @@ boost::filesystem::path static StartupShortcutPath()
         return GetSpecialFolderPath(CSIDL_STARTUP) / "Dynamic.lnk";
     if (chain == CBaseChainParams::TESTNET) // Remove this special case when CBaseChainParams::TESTNET = "testnet4"
         return GetSpecialFolderPath(CSIDL_STARTUP) / "Dynamic (testnet).lnk";
-    return GetSpecialFolderPath(CSIDL_STARTUP) / strprintf("Dynamic (%s).lnk", chain);
+    return GetSpecialFolderPath(CSIDL_STARTUP) / tfm::format("Dynamic (%s).lnk", chain);
 }
 
 bool GetStartOnSystemStartup()
@@ -652,7 +651,7 @@ bool SetStartOnSystemStartup(bool fAutoStart)
             // Start client minimized
             QString strArgs = "-min";
             // Set -testnet /-regtest options
-            strArgs += QString::fromStdString(strprintf(" -testnet=%d -regtest=%d", GetBoolArg("-testnet", false), GetBoolArg("-regtest", false)));
+            strArgs += QString::fromStdString(tfm::format(" -testnet=%d -regtest=%d", GetBoolArg("-testnet", false), GetBoolArg("-regtest", false)));
 
 #ifdef UNICODE
             boost::scoped_array<TCHAR> args(new TCHAR[strArgs.length() + 1]);
@@ -718,7 +717,7 @@ boost::filesystem::path static GetAutostartFilePath()
     std::string chain = ChainNameFromCommandLine();
     if (chain == CBaseChainParams::MAIN)
         return GetAutostartDir() / "dynamic.desktop";
-    return GetAutostartDir() / strprintf("dynamic-%s.lnk", chain);
+    return GetAutostartDir() / tfm::format("dynamic-%s.lnk", chain);
 }
 
 bool GetStartOnSystemStartup()
@@ -761,8 +760,8 @@ bool SetStartOnSystemStartup(bool fAutoStart)
         if (chain == CBaseChainParams::MAIN)
             optionFile << "Name=Dynamic\n";
         else
-            optionFile << strprintf("Name=Dynamic (%s)\n", chain);
-        optionFile << "Exec=" << pszExePath << strprintf(" -min -testnet=%d -regtest=%d\n", GetBoolArg("-testnet", false), GetBoolArg("-regtest", false));
+            optionFile << tfm::format("Name=Dynamic (%s)\n", chain);
+        optionFile << "Exec=" << pszExePath << tfm::format(" -min -testnet=%d -regtest=%d\n", GetBoolArg("-testnet", false), GetBoolArg("-regtest", false));
         optionFile << "Terminal=false\n";
         optionFile << "Hidden=false\n";
         optionFile.close();

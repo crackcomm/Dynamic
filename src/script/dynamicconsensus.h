@@ -9,7 +9,7 @@
 #define DYNAMIC_DYNAMICCONSENSUS_H
 
 #if defined(BUILD_DYNAMIC_INTERNAL) && defined(HAVE_CONFIG_H)
-#include "config/dynamic-config.h"
+#include "dynamic-config.h"
 #if defined(_WIN32)
 #if defined(DLL_EXPORT)
 #if defined(HAVE_FUNC_ATTRIBUTE_DLLEXPORT)
@@ -54,11 +54,16 @@ enum {
                                                dynamicconsensus_SCRIPT_FLAGS_VERIFY_CHECKLOCKTIMEVERIFY | dynamicconsensus_SCRIPT_FLAGS_VERIFY_CHECKSEQUENCEVERIFY
 };
 
-/// Returns 1 if the input nIn of the serialized transaction pointed to by
+#ifndef CAmount
+#include <stdint.h>
+typedef int64_t CAmount;
+#endif
+
+/// Returns true if the input nIn of the serialized transaction pointed to by
 /// txTo correctly spends the scriptPubKey pointed to by scriptPubKey under
 /// the additional constraints specified by flags.
 /// If not NULL, err will contain an error/success code for the operation
-EXPORT_SYMBOL int dynamicconsensus_verify_script(const unsigned char* scriptPubKey, unsigned int scriptPubKeyLen, const unsigned char* txTo, unsigned int txToLen, unsigned int nIn, unsigned int flags, dynamicconsensus_error* err);
+EXPORT_SYMBOL bool dynamicconsensus_verify_script(const unsigned char* scriptPubKey, unsigned int scriptPubKeyLen, const unsigned char* txTo, unsigned int txToLen, unsigned int nIn, const CAmount& amountIn, unsigned int flags, dynamicconsensus_error* err);
 
 EXPORT_SYMBOL unsigned int dynamicconsensus_version();
 

@@ -2,11 +2,11 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "rpcserver.h"
-#include "rpcclient.h"
+#include "rpc/server.h"
+#include "rpc/client.h"
 
-#include "base58.h"
-#include "netbase.h"
+#include "util/base58.h"
+#include "net/base.h"
 
 #include "test/test_dynamic.h"
 

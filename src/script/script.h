@@ -1,15 +1,14 @@
-// Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2015 The Bitcoin Core developers
-// Copyright (c) 2009-2017 The Syscoin Core developers
-// Copyright (c) 2016-2018 Duality Blockchain Solutions Developers
+// Copy / prevector2009-2010 Satoshi Nakamoto
+// Copyright (c) 2009-2018 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef DYNAMIC_SCRIPT_SCRIPT_H
-#define DYNAMIC_SCRIPT_SCRIPT_H
+#ifndef BITCOIN_SCRIPT_SCRIPT_H
+#define BITCOIN_SCRIPT_SCRIPT_H
 
-#include "crypto/common.h"
-#include "prevector.h"
+#include "util/serialize.h"
+#include <crypto/common.h>
+#include <support/prevector.h>
 
 #include <assert.h>
 #include <climits>
@@ -31,6 +30,9 @@ static const int MAX_PUBKEYS_PER_MULTISIG = 20;
 
 // Maximum script length in bytes
 static const int MAX_SCRIPT_SIZE = 10000;
+
+// Maximum number of values on script interpreter stack
+static const int MAX_STACK_SIZE = 1000;
 
 // Threshold for nLockTime: below this value it is interpreted as block number,
 // otherwise as UNIX timestamp.
@@ -208,12 +210,15 @@ enum opcodetype {
     OP_BDAP_ID_VERIFICATION = 0x0c,    // = BDAP identity verification
     OP_BDAP_CHANNEL = 0x0d,            // = BDAP sub chain
     OP_BDAP_CHANNEL_CHECKPOINT = 0x0e, // = BDAP sub chain checkpoint
-    // dynamic extended reserved
+                                       // dynamic extended reserved
     OP_DYNAMIC_EXTENDED = 0x10,
 
     // invalid operation code
     OP_INVALIDOPCODE = 0xff,
 };
+
+// Maximum value that an opcode can be
+static const unsigned int MAX_OPCODE = OP_NOP10;
 
 const char* GetOpName(opcodetype opcode);
 
@@ -242,24 +247,22 @@ enum ProtocolCodes {
 class scriptnum_error : public std::runtime_error
 {
 public:
-    explicit scriptnum_error(const std::string& str) : std::runtime_error(str) {}
+    explicit scriptnum_error(const std::string& str)
+        : std::runtime_error(str) {}
 };
 
 class CScriptNum
 {
     /**
- * Numeric opcodes (OP_1ADD, etc) are restricted to operating on 4-byte integers.
- * The semantics are subtle, though: operands must be in the range [-2^31 +1...2^31 -1],
- * but results may overflow (and are valid as long as they are not used in a subsequent
- * numeric operation). CScriptNum enforces those semantics by storing results as
- * an int64 and allowing out-of-range values to be returned as a vector of bytes but
- * throwing an exception if arithmetic is done or the result is interpreted as an integer.
- */
+     * Numeric opcodes (OP_1ADD, etc) are restricted to operating on 4-byte integers.
+     * The semantics are subtle, though: operands must be in the range [-2^31 +1...2^31 -1],
+     * but results may overflow (and are valid as long as they are not used in a subsequent
+     * numeric operation). CScriptNum enforces those semantics by storing results as
+     * an int64 and allowing out-of-range values to be returned as a vector of bytes but
+     * throwing an exception if arithmetic is done or the result is interpreted as an integer.
+     */
 public:
-    explicit CScriptNum(const int64_t& n)
-    {
-        m_value = n;
-    }
+    explicit CScriptNum(const int64_t& n) { m_value = n; }
 
     static const size_t nDefaultMaxNumSize = 4;
 
@@ -359,10 +362,7 @@ public:
         return m_value;
     }
 
-    std::vector<unsigned char> getvch() const
-    {
-        return serialize(m_value);
-    }
+    std::vector<unsigned char> getvch() const { return serialize(m_value); }
 
     static std::vector<unsigned char> serialize(const int64_t& value)
     {
@@ -417,7 +417,18 @@ private:
     int64_t m_value;
 };
 
+/**
+ * We use a prevector for the script to reduce the considerable memory overhead
+ *  of vectors in cases where they normally contain a small number of small elements.
+ * Tests in October 2015 showed use of this reduced dbcache memory usage by 23%
+ *  and made an initial sync 13% faster.
+ */
 typedef prevector<28, unsigned char> CScriptBase;
+
+bool GetScriptOp(CScriptBase::const_iterator& pc,
+    CScriptBase::const_iterator end,
+    opcodetype& opcodeRet,
+    std::vector<unsigned char>* pvchRet);
 
 /** Serialized script, used inside transaction inputs and outputs */
 class CScript : public CScriptBase
@@ -437,12 +448,24 @@ protected:
 
 public:
     CScript() {}
-    CScript(const_iterator pbegin, const_iterator pend) : CScriptBase(pbegin, pend) {}
-    CScript(std::vector<unsigned char>::const_iterator pbegin, std::vector<unsigned char>::const_iterator pend) : CScriptBase(pbegin, pend) {}
-    CScript(const unsigned char* pbegin, const unsigned char* pend) : CScriptBase(pbegin, pend) {}
+    CScript(const_iterator pbegin, const_iterator pend)
+        : CScriptBase(pbegin, pend) {}
+    CScript(std::vector<unsigned char>::const_iterator pbegin, std::vector<unsigned char>::const_iterator pend)
+        : CScriptBase(pbegin, pend) {}
+    CScript(const unsigned char* pbegin, const unsigned char* pend)
+        : CScriptBase(pbegin, pend) {}
+
+    ADD_SERIALIZE_METHODS;
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action)
+    {
+        READWRITEAS(CScriptBase, *this);
+    }
 
     CScript& operator+=(const CScript& b)
     {
+        reserve(size() + b.size());
         insert(end(), b.begin(), b.end());
         return *this;
     }
@@ -486,14 +509,14 @@ public:
             insert(end(), (unsigned char)b.size());
         } else if (b.size() <= 0xffff) {
             insert(end(), OP_PUSHDATA2);
-            uint8_t data[2];
-            WriteLE16(data, b.size());
-            insert(end(), data, data + sizeof(data));
+            uint8_t _data[2];
+            WriteLE16(_data, b.size());
+            insert(end(), _data, _data + sizeof(_data));
         } else {
             insert(end(), OP_PUSHDATA4);
-            uint8_t data[4];
-            WriteLE32(data, b.size());
-            insert(end(), data, data + sizeof(data));
+            uint8_t _data[4];
+            WriteLE32(_data, b.size());
+            insert(end(), _data, _data + sizeof(_data));
         }
         insert(end(), b.begin(), b.end());
         return *this;
@@ -508,76 +531,13 @@ public:
     }
 
 
-    bool GetOp(iterator& pc, opcodetype& opcodeRet, std::vector<unsigned char>& vchRet)
-    {
-        // Wrapper so it can be called with either iterator or const_iterator
-        const_iterator pc2 = pc;
-        bool fRet = GetOp2(pc2, opcodeRet, &vchRet);
-        pc = begin() + (pc2 - begin());
-        return fRet;
-    }
-
-    bool GetOp(iterator& pc, opcodetype& opcodeRet)
-    {
-        const_iterator pc2 = pc;
-        bool fRet = GetOp2(pc2, opcodeRet, NULL);
-        pc = begin() + (pc2 - begin());
-        return fRet;
-    }
-
     bool GetOp(const_iterator& pc, opcodetype& opcodeRet, std::vector<unsigned char>& vchRet) const
     {
-        return GetOp2(pc, opcodeRet, &vchRet);
+        return GetScriptOp(pc, end(), opcodeRet, &vchRet);
     }
 
-    bool GetOp(const_iterator& pc, opcodetype& opcodeRet) const
-    {
-        return GetOp2(pc, opcodeRet, NULL);
-    }
+    bool GetOp(const_iterator& pc, opcodetype& opcodeRet) const { return GetScriptOp(pc, end(), opcodeRet, nullptr); }
 
-    bool GetOp2(const_iterator& pc, opcodetype& opcodeRet, std::vector<unsigned char>* pvchRet) const
-    {
-        opcodeRet = OP_INVALIDOPCODE;
-        if (pvchRet)
-            pvchRet->clear();
-        if (pc >= end())
-            return false;
-
-        // Read instruction
-        if (end() - pc < 1)
-            return false;
-        unsigned int opcode = *pc++;
-
-        // Immediate operand
-        if (opcode <= OP_PUSHDATA4) {
-            unsigned int nSize = 0;
-            if (opcode < OP_PUSHDATA1) {
-                nSize = opcode;
-            } else if (opcode == OP_PUSHDATA1) {
-                if (end() - pc < 1)
-                    return false;
-                nSize = *pc++;
-            } else if (opcode == OP_PUSHDATA2) {
-                if (end() - pc < 2)
-                    return false;
-                nSize = ReadLE16(&pc[0]);
-                pc += 2;
-            } else if (opcode == OP_PUSHDATA4) {
-                if (end() - pc < 4)
-                    return false;
-                nSize = ReadLE32(&pc[0]);
-                pc += 4;
-            }
-            if (end() - pc < 0 || (unsigned int)(end() - pc) < nSize)
-                return false;
-            if (pvchRet)
-                pvchRet->assign(pc, pc + nSize);
-            pc += nSize;
-        }
-
-        opcodeRet = (opcodetype)opcode;
-        return true;
-    }
 
     /** Encode/decode small integers: */
     static int DecodeOP_N(opcodetype opcode)
@@ -593,40 +553,6 @@ public:
         if (n == 0)
             return OP_0;
         return (opcodetype)(OP_1 + n - 1);
-    }
-
-    int FindAndDelete(const CScript& b)
-    {
-        int nFound = 0;
-        if (b.empty())
-            return nFound;
-        CScript result;
-        iterator pc = begin(), pc2 = begin();
-        opcodetype opcode;
-        do {
-            result.insert(result.end(), pc2, pc);
-            while (static_cast<size_t>(end() - pc) >= b.size() && std::equal(b.begin(), b.end(), pc)) {
-                pc = pc + b.size();
-                ++nFound;
-            }
-            pc2 = pc;
-        } while (GetOp(pc, opcode));
-
-        if (nFound > 0) {
-            result.insert(result.end(), pc2, end());
-            *this = result;
-        }
-
-        return nFound;
-    }
-    int Find(opcodetype op) const
-    {
-        int nFound = 0;
-        opcodetype opcode;
-        for (const_iterator pc = begin(); pc != end() && GetOp(pc, opcode);)
-            if (opcode == op)
-                ++nFound;
-        return nFound;
     }
 
     /**
@@ -655,90 +581,21 @@ public:
     bool IsPushOnly(const_iterator pc) const;
     bool IsPushOnly() const;
 
+    /** Check if the script contains valid OP_CODES */
+    bool HasValidOps() const;
+
     /**
      * Returns whether the script is guaranteed to fail at execution,
      * regardless of the initial stack. This allows outputs to be pruned
      * instantly when entering the UTXO set.
      */
-    bool IsUnspendable() const
-    {
-        return (size() > 0 && *begin() == OP_RETURN) || (size() > MAX_SCRIPT_SIZE);
-    }
-
-    bool IsProtocolInstruction(ProtocolCodes code) const
-    {
-        switch (code) {
-        case MINT_TX:
-            return (size() > 0 && *begin() == OP_MINT);
-            break;
-        case DYNODE_MODFIY_TX:
-            return (size() > 0 && *begin() == OP_REWARD_DYNODE);
-            break;
-        case MINING_MODIFY_TX:
-            return (size() > 0 && *begin() == OP_REWARD_MINING);
-            break;
-        default:
-            throw std::runtime_error("Protocol code is invalid!");
-        }
-        return false;
-    }
-
-    //TODO: (bdap) test if this is working
-    bool IsBDAPScript(ProtocolCodes code) const
-    {
-        switch (code) {
-        case BDAP_START:
-            return (size() > 0 && *begin() == OP_BDAP);
-            break;
-        case BDAP_NEW_TX:
-            return (size() > 0 && *begin() == OP_BDAP_NEW);
-            break;
-        case BDAP_DELETE_TX:
-            return (size() > 0 && *begin() == OP_BDAP_DELETE);
-            break;
-        case BDAP_REVOKE_TX:
-            return (size() > 0 && *begin() == OP_BDAP_REVOKE);
-            break;
-        case BDAP_MODIFY_TX:
-            return (size() > 0 && *begin() == OP_BDAP_MODIFY);
-            break;
-        case BDAP_MODIFY_RDN_TX:
-            return (size() > 0 && *begin() == OP_BDAP_MODIFY_RDN);
-            break;
-        case BDAP_EXECUTE_CODE_TX:
-            return (size() > 0 && *begin() == OP_BDAP_EXECUTE_CODE);
-            break;
-        case BDAP_BIND_TX:
-            return (size() > 0 && *begin() == OP_BDAP_BIND);
-            break;
-        case BDAP_AUDIT_TX:
-            return (size() > 0 && *begin() == OP_BDAP_AUDIT);
-            break;
-        case BDAP_CERTIFICATE_TX:
-            return (size() > 0 && *begin() == OP_BDAP_CERTIFICATE);
-            break;
-        case BDAP_IDENTITY_TX:
-            return (size() > 0 && *begin() == OP_BDAP_IDENTITY);
-            break;
-        case BDAP_ID_VERIFICATION_TX:
-            return (size() > 0 && *begin() == OP_BDAP_ID_VERIFICATION);
-            break;
-        case BDAP_CHANNEL_TX:
-            return (size() > 0 && *begin() == OP_BDAP_CHANNEL);
-            break;
-        case BDAP_CHANNEL_CHECKPOINT:
-            return (size() > 0 && *begin() == OP_BDAP_CHANNEL_CHECKPOINT);
-            break;
-        default:
-            throw std::runtime_error("BDAP code is invalid!");
-        }
-        return false;
-    }
+    bool IsUnspendable() const { return (size() > 0 && *begin() == OP_RETURN) || (size() > MAX_SCRIPT_SIZE); }
 
     void clear()
     {
-        // The default std::vector::clear() does not release memory.
-        CScriptBase().swap(*this);
+        // The default prevector::clear() does not release memory
+        CScriptBase::clear();
+        shrink_to_fit();
     }
 };
 
@@ -751,10 +608,11 @@ public:
     virtual ~CReserveScript() {}
 };
 
+
 // TODO: Use a seperate code file for these BDAP functions
-bool IsDirectoryOp(int op);
+bool IsBDAPOp(int op);
 bool DecodeBDAPScript(const CScript& script, int& op, std::vector<std::vector<unsigned char> >& vvch, CScript::const_iterator& pc);
 bool DecodeBDAPScript(const CScript& script, int& op, std::vector<std::vector<unsigned char> >& vvch);
 bool RemoveBDAPScript(const CScript& scriptIn, CScript& scriptOut);
 
-#endif // DYNAMIC_SCRIPT_SCRIPT_H
+#endif // BITCOIN_SCRIPT_SCRIPT_H

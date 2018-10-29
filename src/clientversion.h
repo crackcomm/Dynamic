@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2018 Duality Blockchain Solutions Developers
+// Copy - config.h 2016-2018 Duality Blockchain Solutions Developers
 // Copyright (c) 2014-2018 The Dash Core Developers
 // Copyright (c) 2009-2018 The Bitcoin Developers
 // Copyright (c) 2009-2018 Satoshi Nakamoto
@@ -9,7 +9,7 @@
 #define DYNAMIC_CLIENTVERSION_H
 
 #if defined(HAVE_CONFIG_H)
-#include "config/dynamic-config.h"
+#include "dynamic-config.h"
 #else
 
 /**

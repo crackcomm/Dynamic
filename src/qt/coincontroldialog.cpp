@@ -16,11 +16,11 @@
 #include "walletmodel.h"
 
 #include "init.h"
-#include "instantsend.h"
+#include "chain/instantsend.h"
 #include "policy/policy.h"
-#include "privatesend-client.h"
-#include "txmempool.h"
-#include "validation.h" // For minRelayTxFee
+#include "privatesend/client.h"
+#include "db/txmempool.h"
+#include "chain/validation.h" // For minRelayTxFee
 #include "wallet/coincontrol.h"
 #include "wallet/wallet.h"
 
@@ -421,7 +421,7 @@ void CoinControlDialog::viewItemChanged(QTreeWidgetItem* item, int column)
             item->setCheckState(COLUMN_CHECKBOX, Qt::Unchecked);
         else {
             coinControl->Select(outpt);
-            int nRounds = pwalletMain->GetRealOutpointPrivateSendRounds(outpt);
+            int nRounds = pwalletMain->GetOutpointPrivateSendRounds(outpt);
             if (coinControl->fUsePrivateSend && nRounds < privateSendClient.nPrivateSendRounds) {
                 QMessageBox::warning(this, windowTitle(),
                     tr("Non-anonymized input selected. <b>PrivateSend will be disabled.</b><br><br>If you still want to use PrivateSend, please deselect all non-nonymized inputs first and then check PrivateSend checkbox again."),

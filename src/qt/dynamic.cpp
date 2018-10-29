@@ -6,16 +6,16 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #if defined(HAVE_CONFIG_H)
-#include "config/dynamic-config.h"
+#include "dynamic-config.h"
 #endif
 
 #include "clientmodel.h"
 #include "dynamicgui.h"
-#include "dynodeconfig.h"
+#include "dynode/config.h"
 #include "guiconstants.h"
 #include "guiutil.h"
 #include "intro.h"
-#include "net.h"
+#include "net/net.h"
 #include "networkstyle.h"
 #include "optionsmodel.h"
 #include "platformstyle.h"
@@ -27,12 +27,12 @@
 #include "walletmodel.h"
 #endif
 
-#include "chainparams.h"
+#include "chain/params.h"
 #include "init.h"
-#include "rpcserver.h"
-#include "scheduler.h"
+#include "rpc/server.h"
+#include "support/scheduler.h"
 #include "ui_interface.h"
-#include "util.h"
+#include "util/util.h"
 #include "warnings.h"
 
 #ifdef ENABLE_WALLET
@@ -41,7 +41,7 @@
 
 #include <stdint.h>
 
-#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/util/operations.hpp>
 #include <boost/thread.hpp>
 
 #include <QApplication>
@@ -86,18 +86,12 @@ Q_IMPORT_PLUGIN(QCocoaIntegrationPlugin);
 Q_DECLARE_METATYPE(bool*)
 Q_DECLARE_METATYPE(CAmount)
 
-static void InitMessage(const std::string& message)
-{
-    LogPrintf("init message: %s\n", message);
-}
+static void InitMessage(const std::string& message) { LogPrintf("init message: %s\n", message); }
 
 /*
    Translate string to current locale using Qt.
  */
-static std::string Translate(const char* psz)
-{
-    return QCoreApplication::translate("dynamic", psz).toStdString();
-}
+static std::string Translate(const char* psz) { return QCoreApplication::translate("dynamic", psz).toStdString(); }
 
 static QString GetLangTerritory()
 {
@@ -259,7 +253,8 @@ private:
 
 #include "dynamic.moc"
 
-DynamicCore::DynamicCore() : QObject()
+DynamicCore::DynamicCore()
+    : QObject()
 {
 }
 
@@ -336,17 +331,20 @@ void DynamicCore::shutdown()
     }
 }
 
-DynamicApplication::DynamicApplication(int& argc, char** argv) : QApplication(argc, argv),
-                                                                 coreThread(0),
-                                                                 optionsModel(0),
-                                                                 clientModel(0),
-                                                                 window(0),
-                                                                 pollShutdownTimer(0),
+DynamicApplication::DynamicApplication(int& argc, char** argv)
+    : QApplication(argc, argv)
+    , coreThread(0)
+    , optionsModel(0)
+    , clientModel(0)
+    , window(0)
+    , pollShutdownTimer(0)
+    ,
 #ifdef ENABLE_WALLET
-                                                                 paymentServer(0),
-                                                                 walletModel(0),
+    paymentServer(0)
+    , walletModel(0)
+    ,
 #endif
-                                                                 returnValue(0)
+    returnValue(0)
 {
     setQuitOnLastWindowClosed(false);
 
@@ -389,16 +387,10 @@ DynamicApplication::~DynamicApplication()
 }
 
 #ifdef ENABLE_WALLET
-void DynamicApplication::createPaymentServer()
-{
-    paymentServer = new PaymentServer(this);
-}
+void DynamicApplication::createPaymentServer() { paymentServer = new PaymentServer(this); }
 #endif
 
-void DynamicApplication::createOptionsModel(bool resetSettings)
-{
-    optionsModel = new OptionsModel(NULL, resetSettings);
-}
+void DynamicApplication::createOptionsModel(bool resetSettings) { optionsModel = new OptionsModel(NULL, resetSettings); }
 
 void DynamicApplication::createWindow(const NetworkStyle* networkStyle)
 {
@@ -502,8 +494,8 @@ void DynamicApplication::initializeResult(int retval)
             window->addWallet(DynamicGUI::DEFAULT_WALLET, walletModel);
             window->setCurrentWallet(DynamicGUI::DEFAULT_WALLET);
 
-            connect(walletModel, SIGNAL(coinsSent(CWallet*, SendCoinsRecipient, QByteArray)),
-                paymentServer, SLOT(fetchPaymentACK(CWallet*, const SendCoinsRecipient&, QByteArray)));
+            connect(walletModel, SIGNAL(coinsSent(CWallet*, SendCoinsRecipient, QByteArray)), paymentServer,
+                SLOT(fetchPaymentACK(CWallet*, const SendCoinsRecipient&, QByteArray)));
         }
 #endif
 
@@ -518,12 +510,9 @@ void DynamicApplication::initializeResult(int retval)
 #ifdef ENABLE_WALLET
         // Now that initialization/startup is done, process any command-line
         // dynamic: URIs or payment requests:
-        connect(paymentServer, SIGNAL(receivedPaymentRequest(SendCoinsRecipient)),
-            window, SLOT(handlePaymentRequest(SendCoinsRecipient)));
-        connect(window, SIGNAL(receivedURI(QString)),
-            paymentServer, SLOT(handleURIOrFile(QString)));
-        connect(paymentServer, SIGNAL(message(QString, QString, unsigned int)),
-            window, SLOT(message(QString, QString, unsigned int)));
+        connect(paymentServer, SIGNAL(receivedPaymentRequest(SendCoinsRecipient)), window, SLOT(handlePaymentRequest(SendCoinsRecipient)));
+        connect(window, SIGNAL(receivedURI(QString)), paymentServer, SLOT(handleURIOrFile(QString)));
+        connect(paymentServer, SIGNAL(message(QString, QString, unsigned int)), window, SLOT(message(QString, QString, unsigned int)));
         QTimer::singleShot(100, paymentServer, SLOT(uiReady()));
 #endif
     } else {
@@ -539,7 +528,8 @@ void DynamicApplication::shutdownResult(int retval)
 
 void DynamicApplication::handleRunawayException(const QString& message)
 {
-    QMessageBox::critical(0, "Runaway exception", DynamicGUI::tr("A fatal error occurred. Dynamic can no longer continue safely and will quit.") + QString("\n\n") + message);
+    QMessageBox::critical(0, "Runaway exception",
+        DynamicGUI::tr("A fatal error occurred. Dynamic can no longer continue safely and will quit.") + QString("\n\n") + message);
     ::exit(EXIT_FAILURE);
 }
 
@@ -632,11 +622,10 @@ int main(int argc, char* argv[])
             QObject::tr("Error: Specified data directory \"%1\" does not exist.").arg(QString::fromStdString(GetArg("-datadir", ""))));
         return EXIT_FAILURE;
     }
-    try {
-        ReadConfigFile(GetArg("-conf", DYNAMIC_CONF_FILENAME));
-    } catch (const std::exception& e) {
-        QMessageBox::critical(0, QObject::tr("Dynamic"),
-            QObject::tr("Error: Cannot parse configuration file: %1. Only use key=value syntax.").arg(e.what()));
+    std::string error;
+    if (!gArgs.ReadConfigFiles(error, true)) {
+        QMessageBox::critical(
+            0, QObject::tr("Dynamic"), QObject::tr("Error: Cannot parse configuration file: %1. Only use key=value syntax.").arg(e.what()));
         return EXIT_FAILURE;
     }
 
@@ -669,8 +658,7 @@ int main(int argc, char* argv[])
     /// 7a. parse dynode.conf
     std::string strErr;
     if (!dynodeConfig.read(strErr)) {
-        QMessageBox::critical(0, QObject::tr("Dynamic"),
-            QObject::tr("Error reading Dynode configuration file: %1").arg(strErr.c_str()));
+        QMessageBox::critical(0, QObject::tr("Dynamic"), QObject::tr("Error reading Dynode configuration file: %1").arg(strErr.c_str()));
         return EXIT_FAILURE;
     }
 

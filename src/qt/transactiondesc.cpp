@@ -12,13 +12,13 @@
 #include "paymentserver.h"
 #include "transactionrecord.h"
 
-#include "base58.h"
+#include "util/base58.h"
 #include "consensus/consensus.h"
-#include "instantsend.h"
+#include "chain/instantsend.h"
 #include "script/script.h"
 #include "timedata.h"
-#include "util.h"
-#include "validation.h"
+#include "util/util.h"
+#include "chain/validation.h"
 #include "wallet/db.h"
 #include "wallet/wallet.h"
 

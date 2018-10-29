@@ -5,7 +5,7 @@
 #ifndef DYNAMIC_ZMQ_ZMQNOTIFICATIONINTERFACE_H
 #define DYNAMIC_ZMQ_ZMQNOTIFICATIONINTERFACE_H
 
-#include "validationinterface.h"
+#include "chain/validationinterface.h"
 #include <string>
 #include <map>
 

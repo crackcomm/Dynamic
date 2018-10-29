@@ -13,9 +13,9 @@
 #include "platformstyle.h"
 #include "walletmodel.h"
 
-#include "base58.h"
+#include "util/base58.h"
 #include "init.h"
-#include "validation.h" // For strMessageMagic
+#include "chain/validation.h" // For strMessageMagic
 #include "wallet/wallet.h"
 
 #include <string>

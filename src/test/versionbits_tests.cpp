@@ -2,12 +2,12 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "chain.h"
+#include "chain/chain.h"
 #include "test_random.h"
 #include "versionbits.h"
 #include "test/test_dynamic.h"
-#include "chainparams.h"
-#include "validation.h"
+#include "chain/params.h"
+#include "chain/validation.h"
 #include "consensus/params.h"
 
 #include <boost/test/unit_test.hpp>

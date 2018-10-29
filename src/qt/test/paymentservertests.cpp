@@ -7,12 +7,12 @@
 #include "optionsmodel.h"
 #include "paymentrequestdata.h"
 
-#include "amount.h"
-#include "random.h"
+#include "chain/amount.h"
+#include "util/random.h"
 #include "script/script.h"
 #include "script/standard.h"
-#include "util.h"
-#include "utilstrencodings.h"
+#include "util/util.h"
+#include "util/strencodings.h"
 
 #include <openssl/x509.h>
 #include <openssl/x509_vfy.h>

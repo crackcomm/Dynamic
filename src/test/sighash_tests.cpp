@@ -4,16 +4,16 @@
 
 #include "consensus/validation.h"
 #include "data/sighash.json.h"
-#include "hash.h"
-#include "validation.h" // For CheckTransaction
+#include "util/hash.h"
+#include "chain/validation.h" // For CheckTransaction
 #include "test_random.h"
 #include "script/interpreter.h"
 #include "script/script.h"
-#include "serialize.h"
-#include "streams.h"
+#include "util/serialize.h"
+#include "util/streams.h"
 #include "test/test_dynamic.h"
-#include "util.h"
-#include "utilstrencodings.h"
+#include "util/util.h"
+#include "util/strencodings.h"
 #include "version.h"
 
 #include <iostream>

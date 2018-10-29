@@ -8,9 +8,9 @@
 #ifndef DYNAMIC_WALLET_WALLETDB_H
 #define DYNAMIC_WALLET_WALLETDB_H
 
-#include "amount.h"
-#include "hdchain.h"
-#include "key.h"
+#include "chain/amount.h"
+#include "keys/hdchain.h"
+#include "keys/key.h"
 #include "wallet/db.h"
 
 #include <list>
@@ -23,7 +23,6 @@ static const bool DEFAULT_FLUSHWALLET = true;
 
 class CAccount;
 class CAccountingEntry;
-struct CBlockLocator;
 class CKeyPool;
 class CMasterKey;
 class CScript;
@@ -31,6 +30,8 @@ class CWallet;
 class CWalletTx;
 class uint160;
 class uint256;
+
+struct CBlockLocator;
 
 /** Error statuses for the wallet database */
 enum DBErrors {
@@ -98,7 +99,7 @@ public:
 
     bool WriteCScript(const uint160& hash, const CScript& redeemScript);
 
-    bool WriteWatchOnly(const CScript& script, const CKeyMetadata& keymeta);
+    bool WriteWatchOnly(const CScript& script);
     bool EraseWatchOnly(const CScript& script);
 
     bool WriteBestBlock(const CBlockLocator& locator);
@@ -131,8 +132,8 @@ public:
 
     DBErrors LoadWallet(CWallet* pwallet);
     DBErrors FindWalletTx(CWallet* pwallet, std::vector<uint256>& vTxHash, std::vector<CWalletTx>& vWtx);
-    DBErrors ZapWalletTx(CWallet* pwallet, std::vector<CWalletTx>& vWtx);
     DBErrors ZapSelectTx(CWallet* pwallet, std::vector<uint256>& vHashIn, std::vector<uint256>& vHashOut);
+    DBErrors ZapWalletTx(CWallet* pwallet, std::vector<CWalletTx>& vWtx);
     static bool Recover(CDBEnv& dbenv, const std::string& filename, bool fOnlyKeys);
     static bool Recover(CDBEnv& dbenv, const std::string& filename);
 
@@ -141,14 +142,11 @@ public:
     bool WriteCryptedHDChain(const CHDChain& chain);
     bool WriteHDPubKey(const CHDPubKey& hdPubKey, const CKeyMetadata& keyMeta);
 
-    static void IncrementUpdateCounter();
-    static unsigned int GetUpdateCounter();
-
 private:
     CWalletDB(const CWalletDB&);
     void operator=(const CWalletDB&);
 };
 
-void ThreadFlushWalletDB();
+void ThreadFlushWalletDB(const std::string& strFile);
 
 #endif // DYNAMIC_WALLET_WALLETDB_H

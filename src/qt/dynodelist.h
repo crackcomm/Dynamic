@@ -11,8 +11,8 @@
 #include "platformstyle.h"
 
 #include "primitives/transaction.h"
-#include "sync.h"
-#include "util.h"
+#include "support/sync.h"
+#include "util/util.h"
 
 #include <QMenu>
 #include <QTimer>

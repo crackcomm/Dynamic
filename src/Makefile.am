@@ -1,15 +1,16 @@
-DIST_SUBDIRS = secp256k1 univalue
+DIST_SUBDIRS = third_party/secp256k1 third_party/univalue
 
 AM_LDFLAGS = $(PTHREAD_CFLAGS) $(LIBTOOL_LDFLAGS) $(HARDENED_LDFLAGS)
 AM_CXXFLAGS = $(HARDENED_CXXFLAGS)
 AM_CPPFLAGS = $(HARDENED_CPPFLAGS)
 EXTRA_LIBRARIES =
 
-DYNAMIC_CONFIG_INCLUDES=-I$(builddir)/config
-DYNAMIC_INCLUDES=-I$(builddir) -I$(builddir)/obj $(BOOST_CPPFLAGS) $(LEVELDB_CPPFLAGS) $(CRYPTO_CFLAGS) $(SSL_CFLAGS)
+DYNAMIC_CONFIG_INCLUDES=-I$(builddir)
+DYNAMIC_INCLUDES = -I$(builddir) -I$(builddir)/third_party/obj $(BOOST_CPPFLAGS) $(LEVELDB_CPPFLAGS) $(CRYPTO_CFLAGS) $(SSL_CFLAGS)
 
-DYNAMIC_INCLUDES += -I$(srcdir)/secp256k1/include
-DYNAMIC_INCLUDES += -I$(srcdir)/univalue/include
+DYNAMIC_INCLUDES += -I$(srcdir)/third_party/math
+DYNAMIC_INCLUDES += -I$(srcdir)/third_party/secp256k1/include
+DYNAMIC_INCLUDES += -I$(srcdir)/third_party/univalue/include
 
 LIBDYNAMIC_SERVER=libdynamic_server.a
 LIBDYNAMIC_WALLET=libdynamic_wallet.a
@@ -18,13 +19,13 @@ LIBDYNAMIC_CLI=libdynamic_cli.a
 LIBDYNAMIC_UTIL=libdynamic_util.a
 LIBDYNAMIC_CRYPTO=crypto/libdynamic_crypto.a
 LIBDYNAMICQT=qt/libdynamicqt.a
-LIBSECP256K1=secp256k1/libsecp256k1.la
-LIBUNIVALUE=univalue/libunivalue.la
+LIBSECP256K1=third_party/secp256k1/libsecp256k1.la
+LIBUNIVALUE=third_party/univalue/libunivalue.la
 
-$(LIBSECP256K1): $(wildcard secp256k1/src/*) $(wildcard secp256k1/include/*)
+$(LIBSECP256K1): $(wildcard third_party/secp256k1/src/*) $(wildcard third_party/secp256k1/include/*)
 	$(AM_V_at)$(MAKE) $(AM_MAKEFLAGS) -C $(@D) $(@F)
 
-$(LIBUNIVALUE): $(wildcard univalue/lib/*) $(wildcard univalue/include/*)
+$(LIBUNIVALUE): $(wildcard third_party/univalue/lib/*) $(wildcard third_party/univalue/include/*)
 	$(AM_V_at)$(MAKE) $(AM_MAKEFLAGS) -C $(@D) $(@F)
 
 # Make is not made aware of per-object dependencies to avoid limiting building parallelization
@@ -65,14 +66,6 @@ endif
 .PHONY: FORCE check-symbols check-security
 # dynamic #
 DYNAMIC_CORE_H = \
-  activedynode.h \
-  addrdb.h \
-  addressindex.h \
-  addrman.h \
-  alert.h \
-  amount.h \
-  arith_uint256.h \
-  base58.h \
   bdap/auditdata.h \
   bdap/bdap.h \
   bdap/domainentry.h \
@@ -82,130 +75,151 @@ DYNAMIC_CORE_H = \
   bdap/entrycheckpoints.h \
   bdap/entrylink.h \
   bdap/identity.h \
-  bip39_english.h \
-  bip39.h \
-  blockencodings.h \
-  bloom.h \
-  cachemap.h \
-  cachemultimap.h \
-  chain.h \
-  chainparams.h \
-  chainparamsbase.h \
-  chainparamsseeds.h \
-  checkpoints.h \
-  checkqueue.h \
+  chain/dynode/active.h \
+  chain/amount.h \
+  chain/blockencodings.h \
+  chain/chain.h \
+  chain/checkpoints.h \
+  chain/checkqueue.h \
+  chain/coins.h \
+  chain/instantsend.h \
+  chain/merkleblock.h \
+  chain/params.h \
+  chain/paramsbase.h \
+  chain/paramsseeds.h \
+  chain/pow.h \
+  chain/spentindex.h \
+  chain/spork.h \
+  chain/undo.h \
+  chain/validation.h \
+  chain/validationinterface.h \
   clientversion.h \
-  coins.h \
-  compat.h \
   compat/byteswap.h \
+  compat/compat.h \
   compat/endian.h \
   compat/sanity.h \
-  compressor.h \
+  compat/span.h \
   consensus/consensus.h \
   consensus/merkle.h \
   consensus/params.h \
   consensus/validation.h \
-  core_io.h \
-  core_memusage.h \
-  cuckoocache.h \
-  dbwrapper.h \
-  dynode.h \
-  dynode-payments.h \
-  dynode-sync.h \
-  dynodeman.h \
-  dynodeconfig.h \
-  flat-database.h \
+  db/addrdb.h \
+  db/flat-database.h \
+  db/txdb.h \
+  db/txmempool.h \
+  db/wrapper.h \
+  dynode/payments.h \
+  dynode/sync.h \
+  dynode/dynode.h \
+  dynode/config.h \
+  dynode/manager.h \
   fluid/fluid.h \
   fluid/fluiddb.h \
-  fluid/fluiddynode.h \
-  fluid/fluidmining.h \
-  fluid/fluidmint.h \
-  fluid/fluidsovereign.h \
-  governance.h \
-  governance-classes.h \
-  governance-exceptions.h \
-  governance-object.h \
-  governance-validators.h \
-  governance-vote.h \
-  governance-votedb.h \
-  hash.h \
-  hdchain.h \
-  httprpc.h \
-  httpserver.h \
-  indirectmap.h \
+  fluid/dynode.h \
+  fluid/mining.h \
+  fluid/mint.h \
+  fluid/sovereign.h \
+  governance/classes.h \
+  governance/exceptions.h \
+  governance/governance.h \
+  governance/object.h \
+  governance/validators.h \
+  governance/vote.h \
+  governance/votedb.h \
+  http/rpc.h \
+  http/server.h \
   init.h \
-  instantsend.h \
-  key.h \
-  keepass.h \
-  keystore.h \
-  limitedmap.h \
-  memusage.h \
-  merkleblock.h \
-  messagesigner.h \
-  miner-gpu.h \
-  miner.h \
-  net.h \
-  net_processing.h \
-  netaddress.h \
-  netbase.h \
-  netfulfilledman.h \
-  netmessagemaker.h \
-  noui.h \
-  ntp.h \
-  operations.h \
+  keys/bip39.h \
+  keys/bip39_english.h \
+  keys/hdchain.h \
+  keys/key.h \
+  keys/key_io.h \
+  keys/keystore.h \
+  keys/pubkey.h \
+  third_party/math/arith_uint256.h \
+  third_party/math/uint256.h \
+  miner/impl/miner-cpu.h \
+  miner/impl/miner-gpu.h \
+  miner/internal/hash-rate-counter.h \
+  miner/internal/miner-base.h \
+  miner/internal/miner-context.h \
+  miner/internal/miners-controller.h \
+  miner/internal/miners-group.h \
+  miner/internal/thread-group.h \
+  miner/miner-util.h \
+  miner/miner.h \
+  net/address.h \
+  net/base.h \
+  net/fulfilledman.h \
+  net/messagemaker.h \
+  net/net.h \
+  net/processing.h \
+  net/protocol.h \
+  net/torcontrol.h \
   policy/fees.h \
   policy/policy.h \
   policy/rbf.h \
-  pow.h \
-  prevector.h \
   primitives/block.h \
+  primitives/keys.h \
   primitives/transaction.h \
-  privatesend-client.h \
-  privatesend.h \
-  privatesend-server.h \
-  privatesend-util.h \
-  psnotificationinterface.h \
-  protocol.h \
-  pubkey.h \
-  random.h \
-  reverselock.h \
-  rpcclient.h \
-  rpcprotocol.h \
-  rpcregister.h \
-  rpcserver.h \
-  scheduler.h \
+  privatesend/client.h \
+  privatesend/privatesend.h \
+  privatesend/server.h \
+  privatesend/util.h \
+  rpc/client.h \
+  rpc/keepass.h \
+  rpc/protocol.h \
+  rpc/register.h \
+  rpc/server.h \
   script/interpreter.h \
   script/script.h \
   script/script_error.h \
   script/sigcache.h \
   script/sign.h \
   script/standard.h \
-  serialize.h \
-  spentindex.h \
-  spork.h \
-  streams.h \
+  support/core_io.h \
+  chain/memusage.h \
+  support/fs.h \
+  support/scheduler.h \
+  support/sync.h \
   support/allocators/secure.h \
   support/allocators/zeroafterfree.h \
   support/cleanse.h \
-  support/lockedpool.h \
   support/events.h \
-  sync.h \
-  threadinterrupt.h \
-  threadsafety.h \
-  timedata.h \
-  tinyformat.h \
-  torcontrol.h \
-  txdb.h \
-  txmempool.h \
-  ui_interface.h \
-  uint256.h \
-  undo.h \
-  util.h \
-  utilmoneystr.h \
-  utilstrencodings.h \
-  utiltime.h \
-  validation.h \
-  validationinterface.h \
+  support/lockedpool.h \
+  util/addrman.h \
+  util/alert.h \
+  util/base58.h \
+  util/bloom.h \
+  support/cachemap.h \
+  support/cachemultimap.h \
+  util/compressor.h \
+  util/cuckoocache.h \
+  util/hash.h \
+  support/support/indirectmap.h \
+  support/limitedmap.h \
+  util/logging.h \
+  util/util/memusage.h \
+  util/messagesigner.h \
+  util/moneystr.h \
+  util/noui.h \
+  util/ntp.h \
+  util/operations.h \
+  support/prevector.h \
+  util/psnotificationinterface.h \
+  util/random.h \
+  support/reverselock.h \
+  util/serialize.h \
+  util/streams.h \
+  util/strencodings.h \
+  support/threadinterrupt.h \
+  support/threadsafety.h \
+  util/time.h \
+  util/timedata.h \
+  util/tinyformat.h \
+  util/ui_interface.h \
+  util/util.h \
+  util/warnings.h \
   version.h \
   versionbits.h \
   wallet/coincontrol.h \
@@ -215,30 +229,21 @@ DYNAMIC_CORE_H = \
   wallet/wallet.h \
   wallet/wallet_ismine.h \
   wallet/walletdb.h \
-  warnings.h \
   zmq/zmqabstractnotifier.h \
   zmq/zmqconfig.h\
   zmq/zmqnotificationinterface.h \
   zmq/zmqpublishnotifier.h
 
-obj/build.h: FORCE
-	@$(MKDIR_P) $(builddir)/obj
-	@$(top_srcdir)/share/genbuild.sh $(abs_top_builddir)/src/obj/build.h \
+third_party/obj/build.h: FORCE
+	@$(MKDIR_P) $(builddir)/third_party/obj
+	@$(top_srcdir)/share/genbuild.sh $(abs_top_builddir)/src/third_party/obj/build.h \
 	  $(abs_top_srcdir)
-libdynamic_util_a-clientversion.$(OBJEXT): obj/build.h
+libdynamic_util_a-clientversion.$(OBJEXT): third_party/obj/build.h
 
 # server: shared between dynamicd and dynamic-qt
 libdynamic_server_a_CPPFLAGS = $(AM_CPPFLAGS) $(DYNAMIC_INCLUDES) $(MINIUPNPC_CPPFLAGS) $(EVENT_CFLAGS) $(EVENT_PTHREADS_CFLAGS)
 libdynamic_server_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libdynamic_server_a_SOURCES = \
-  activedynode.cpp \
-  addrdb.cpp \
-  addrman.cpp \
-  alert.cpp \
-  blockencodings.cpp \
-  bloom.cpp \
-  chain.cpp \
-  checkpoints.cpp \
   bdap/auditdata.cpp \
   bdap/domainentry.cpp \
   bdap/domainentrydb.cpp \
@@ -248,65 +253,81 @@ libdynamic_server_a_SOURCES = \
   bdap/entrylink.cpp \
   bdap/identity.cpp \
   bdap/rpcdomainentry.cpp \
-  dbwrapper.cpp \
+  chain/dynode/active.cpp \
+  chain/blockencodings.cpp \
+  chain/chain.cpp \
+  chain/checkpoints.cpp \
+  chain/instantsend.cpp \
+  chain/merkleblock.cpp \
+  chain/pow.cpp \
+  chain/spork.cpp \
+  chain/validation.cpp \
+  chain/validationinterface.cpp \
+  db/addrdb.cpp \
+  db/txdb.cpp \
+  db/txmempool.cpp \
+  db/wrapper.cpp \
+  dynode/payments.cpp\
+  dynode/sync.cpp \
   dynode.cpp \
-  dynode-payments.cpp\
-  dynode-sync.cpp \
-  dynodeconfig.cpp \
-  dynodeman.cpp \
+  dynode/config.cpp \
+  dynode/manager.cpp \
   fluid/fluid.cpp \
-  fluid/fluiddb.cpp \
-  fluid/fluiddynode.cpp \
-  fluid/fluidmining.cpp \
-  fluid/fluidmint.cpp \
-  fluid/rpcfluid.cpp \
-  fluid/fluidsovereign.cpp \
-  governance.cpp \
-  governance-classes.cpp \
-  governance-object.cpp \
-  governance-validators.cpp \
-  governance-vote.cpp \
-  governance-votedb.cpp \
-  httprpc.cpp \
-  httpserver.cpp \
+  fluid/db.cpp \
+  fluid/dynode.cpp \
+  fluid/mining.cpp \
+  fluid/mint.cpp \
+  fluid/sovereign.cpp \
+  fluid/rpc.cpp \
+  governance/classes.cpp \
+  governance/governance.cpp \
+  governance/object.cpp \
+  governance/validators.cpp \
+  governance/vote.cpp \
+  governance/votedb.cpp \
+  http/rest.cpp \
+  http/rpc.cpp \
+  http/server.cpp \
   init.cpp \
-  instantsend.cpp \
-  merkleblock.cpp \
-  messagesigner.cpp \
-  miner.cpp \
-  net.cpp \
-  netfulfilledman.cpp \
-  net_processing.cpp \
-  noui.cpp \
-  ntp.cpp \
-  operations.cpp \
+  miner/impl/miner-cpu.cpp \
+  miner/impl/miner-gpu.cpp \
+  miner/internal/hash-rate-counter.cpp \
+  miner/internal/miner-base.cpp \
+  miner/internal/miners-controller.cpp \
+  miner/miner-util.cpp \
+  miner/miner.cpp \
+  net/addrman.cpp \
+  net/fulfilledman.cpp \
+  net/net.cpp \
+  net/processing.cpp \
+  net/torcontrol.cpp \
   policy/fees.cpp \
   policy/policy.cpp \
-  pow.cpp \
-  privatesend.cpp \
-  privatesend-server.cpp \
-  psnotificationinterface.cpp \
-  rest.cpp \
-  rpcblockchain.cpp \
-  rpcdynode.cpp \
-  rpcgovernance.cpp \
-  rpcmining.cpp \
-  rpcmisc.cpp \
-  rpcnet.cpp \
-  rpcrawtransaction.cpp \
-  rpcserver.cpp \
+  privatesend/privatesend.cpp \
+  privatesend/server.cpp \
+  rpc/blockchain.cpp \
+  rpc/dynode.cpp \
+  rpc/governance.cpp \
+  rpc/mining.cpp \
+  rpc/misc.cpp \
+  rpc/net.cpp \
+  rpc/rawtxn.cpp \
+  rpc/server.cpp \
   script/sigcache.cpp \
-  sendalert.cpp \
-  spork.cpp \
-  timedata.cpp \
-  torcontrol.cpp \
-  txdb.cpp \
-  txmempool.cpp \
-  ui_interface.cpp \
-  validation.cpp \
-  validationinterface.cpp \
+  support/fs.cpp \
+  util/alert.cpp \
+  util/bloom.cpp \
+  util/logging.cpp \
+  util/messagesigner.cpp \
+  util/noui.cpp \
+  util/ntp.cpp \
+  util/operations.cpp \
+  util/psnotificationinterface.cpp \
+  util/sendalert.cpp \
+  util/timedata.cpp \
+  util/ui_interface.cpp \
+  util/warnings.cpp \
   versionbits.cpp \
-  warnings.cpp \
   $(DYNAMIC_CORE_H)
 
 if ENABLE_ZMQ
@@ -325,10 +346,10 @@ endif
 libdynamic_wallet_a_CPPFLAGS = $(AM_CPPFLAGS) $(DYNAMIC_INCLUDES)
 libdynamic_wallet_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libdynamic_wallet_a_SOURCES = \
-  keepass.cpp \
   policy/rbf.cpp \
-  privatesend-client.cpp \
-  privatesend-util.cpp \
+  privatesend/client.cpp \
+  privatesend/util.cpp \
+  rpc/keepass.cpp \
   wallet/crypter.cpp \
   wallet/db.cpp \
   wallet/rpcdump.cpp \
@@ -342,21 +363,23 @@ libdynamic_wallet_a_SOURCES = \
 crypto_libdynamic_crypto_a_CPPFLAGS = $(AM_CPPFLAGS) $(DYNAMIC_CONFIG_INCLUDES) $(PIC_FLAGS)
 crypto_libdynamic_crypto_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS) $(PIC_FLAGS)
 crypto_libdynamic_crypto_a_SOURCES = \
-  crypto/common.h \
-  crypto/argon2d/argon2.h \
-  crypto/argon2d/core.h \
-  crypto/argon2d/encoding.h \
-  crypto/argon2d/thread.h \
   crypto/argon2d/argon2.c \
+  crypto/argon2d/argon2.h \
   crypto/argon2d/core.c \
+  crypto/argon2d/core.h \
   crypto/argon2d/encoding.c \
+  crypto/argon2d/encoding.h \
   crypto/argon2d/opt.c \
   crypto/argon2d/thread.c \
-  crypto/blake2/blake2b.c \
-  crypto/blake2/blake2.h \
+  crypto/argon2d/thread.h \
   crypto/blake2/blake2-impl.h \
+  crypto/blake2/blake2.h \
+  crypto/blake2/blake2b.c \
   crypto/blake2/blamka-round-opt.h \
   crypto/blake2/blamka-round-ref.h \
+  crypto/chacha20.cpp \
+  crypto/chacha20.h \
+  crypto/common.h \
   crypto/hmac_sha256.cpp \
   crypto/hmac_sha256.h \
   crypto/hmac_sha512.cpp \
@@ -367,6 +390,10 @@ crypto_libdynamic_crypto_a_SOURCES = \
   crypto/sha1.h \
   crypto/sha256.cpp \
   crypto/sha256.h \
+  crypto/sha256_avx2.cpp \
+  crypto/sha256_shani.cpp \
+  crypto/sha256_sse4.cpp \
+  crypto/sha256_sse41.cpp \
   crypto/sha512.cpp \
   crypto/sha512.h
 
@@ -374,32 +401,34 @@ crypto_libdynamic_crypto_a_SOURCES = \
 libdynamic_common_a_CPPFLAGS = $(AM_CPPFLAGS) $(DYNAMIC_INCLUDES)
 libdynamic_common_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libdynamic_common_a_SOURCES = \
-  amount.cpp \
-  arith_uint256.cpp \
-  base58.cpp \
-  bip39.cpp \
-  chainparams.cpp \
-  coins.cpp \
-  compressor.cpp \
+  chain/amount.cpp \
+  chain/coins.cpp \
+  chain/params.cpp \
   consensus/merkle.cpp \
-  core_read.cpp \
-  core_write.cpp \
-  hash.cpp \
-  hdchain.cpp \
-  key.cpp \
-  keystore.cpp \
-  netaddress.cpp \
-  netbase.cpp \
+  support/core_read.cpp \
+  support/core_write.cpp \
+  support/scheduler.cpp \
+  keys/bip39.cpp \
+  keys/hdchain.cpp \
+  keys/key.cpp \
+  keys/key_io.cpp \
+  keys/keystore.cpp \
+  keys/pubkey.cpp \
+  third_party/math/arith_uint256.cpp \
+  net/address.cpp \
+  net/base.cpp \
+  net/protocol.cpp \
   primitives/block.cpp \
+  primitives/keys.cpp \
   primitives/transaction.cpp \
-  protocol.cpp \
-  pubkey.cpp \
-  scheduler.cpp \
   script/interpreter.cpp \
   script/script.cpp \
   script/script_error.cpp \
   script/sign.cpp \
   script/standard.cpp \
+  util/base58.cpp \
+  util/compressor.cpp \
+  util/hash.cpp \
   $(DYNAMIC_CORE_H)
 
 # util: shared between all executables.
@@ -408,22 +437,22 @@ libdynamic_common_a_SOURCES = \
 libdynamic_util_a_CPPFLAGS = $(AM_CPPFLAGS) $(DYNAMIC_INCLUDES)
 libdynamic_util_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libdynamic_util_a_SOURCES = \
-  chainparamsbase.cpp \
+  chain/paramsbase.cpp \
   clientversion.cpp \
   compat/glibc_sanity.cpp \
   compat/glibcxx_sanity.cpp \
   compat/strnlen.cpp \
-  random.cpp \
-  rpcprotocol.cpp \
+  support/sync.cpp \
+  third_party/math/uint256.cpp \
+  rpc/protocol.cpp \
   support/cleanse.cpp \
   support/lockedpool.cpp \
-  sync.cpp \
-  threadinterrupt.cpp \
-  uint256.cpp \
-  util.cpp \
-  utilmoneystr.cpp \
-  utilstrencodings.cpp \
-  utiltime.cpp \
+  util/moneystr.cpp \
+  util/random.cpp \
+  util/strencodings.cpp \
+  support/threadinterrupt.cpp \
+  util/time.cpp \
+  util/util.cpp \
   $(DYNAMIC_CORE_H)
 
 if GLIBC_BACK_COMPAT
@@ -434,7 +463,7 @@ endif
 libdynamic_cli_a_CPPFLAGS = $(AM_CPPFLAGS) $(DYNAMIC_INCLUDES)
 libdynamic_cli_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libdynamic_cli_a_SOURCES = \
-  rpcclient.cpp \
+  rpc/client.cpp \
   $(DYNAMIC_CORE_H)
 
 nodist_libdynamic_util_a_SOURCES = $(srcdir)/obj/build.h
@@ -517,14 +546,14 @@ libdynamicconsensus_la_SOURCES = \
   crypto/sha1.cpp \
   crypto/sha256.cpp \
   crypto/sha512.cpp \
-  hash.cpp \
+  util/hash.cpp \
   primitives/transaction.cpp \
-  pubkey.cpp \
+  keys/pubkey.cpp \
   script/dynamicconsensus.cpp \
   script/interpreter.cpp \
   script/script.cpp \
-  uint256.cpp \
-  utilstrencodings.cpp
+  third_party/math/uint256.cpp \
+  util/strencodings.cpp
 
 if GLIBC_BACK_COMPAT
   libdynamicconsensus_la_SOURCES += compat/glibc_compat.cpp
@@ -532,38 +561,50 @@ endif
 
 libdynamicconsensus_la_LDFLAGS = $(AM_LDFLAGS) -no-undefined $(RELDFLAGS)
 libdynamicconsensus_la_LIBADD = $(LIBSECP256K1)
-libdynamicconsensus_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(builddir)/obj -I$(srcdir)/secp256k1/include -DBUILD_DYNAMIC_INTERNAL
+libdynamicconsensus_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(builddir)/third_party/math -I$(builddir)/third_party/obj -I$(srcdir)/third_party/secp256k1/include -DBUILD_DYNAMIC_INTERNAL
 libdynamicconsensus_la_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 
 endif
 #
 
-CLEANFILES = leveldb/libleveldb.a leveldb/libmemenv.a
+CLEANFILES = third_party/leveldb/libleveldb.a third_party/leveldb/libmemenv.a
 CLEANFILES += *.gcda *.gcno
 CLEANFILES += bdap/*.gcda bdap/*.gcno
+CLEANFILES += test/bench/*.gcda test/bench/*.gcno
+CLEANFILES += chain/*.gcda chain/*.gcno
 CLEANFILES += compat/*.gcda compat/*.gcno
 CLEANFILES += consensus/*.gcda consensus/*.gcno
 CLEANFILES += crypto/*.gcda crypto/*.gcno
+CLEANFILES += db/*.gcda db/*.gcno
 CLEANFILES += fluid/*.gcda fluid/*.gcno
+CLEANFILES += governance/*.gcda governance/*.gcno
+CLEANFILES += http/*.gcda http/*.gcno
+CLEANFILES += keys/*.gcda keys/*.gcno
+CLEANFILES += third_party/math/*.gcda third_party/math/*.gcno
+CLEANFILES += miner/*.gcda miner/*.gcno
+CLEANFILES += net/*.gcda net/*.gcno
 CLEANFILES += policy/*.gcda policy/*.gcno
 CLEANFILES += primitives/*.gcda primitives/*.gcno
+CLEANFILES += privatesend/*.gcda privatesend/*.gcno
 CLEANFILES += script/*.gcda script/*.gcno
 CLEANFILES += support/*.gcda support/*.gcno
-CLEANFILES += univalue/*.gcda univalue/*.gcno
+CLEANFILES += rpc/*.gcda rpc/*.gcno
+CLEANFILES += third_party/univalue/*.gcda third_party/univalue/*.gcno
+CLEANFILES += util/*.gcda util/*.gcno
 CLEANFILES += wallet/*.gcda wallet/*.gcno
 CLEANFILES += wallet/test/*.gcda wallet/test/*.gcno
 CLEANFILES += zmq/*.gcda zmq/*.gcno
 
-DISTCLEANFILES = obj/build.h
+DISTCLEANFILES = third_party/obj/build.h
 
-EXTRA_DIST = leveldb
+EXTRA_DIST = third_party/leveldb
 
 clean-local:
-	-$(MAKE) -C leveldb clean
-	-$(MAKE) -C secp256k1 clean
-	-$(MAKE) -C univalue clean
-	-rm -f leveldb/*/*.gcda leveldb/*/*.gcno leveldb/helpers/memenv/*.gcda leveldb/helpers/memenv/*.gcno
-	-rm -f config/dynamic-config.* config/stamp-h1
+	-$(MAKE) -C third_party/leveldb clean
+	-$(MAKE) -C third_party/secp256k1 clean
+	-$(MAKE) -C third_party/univalue clean
+	-rm -f third_party/leveldb/*/*.gcda third_party/leveldb/*/*.gcno third_party/leveldb/helpers/memenv/*.gcda third_party/leveldb/helpers/memenv/*.gcno
+	-rm -f dynamic-config.* stamp-h1
 
 .rc.o:
 	@test -f $(WINDRES)
